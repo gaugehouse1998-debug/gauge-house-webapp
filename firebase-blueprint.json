@@ -1,0 +1,225 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Industrial product with technical specifications and multi-variant configurations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "slug": { "type": "string", "maxLength": 250 },
+        "category": { "type": "string", "maxLength": 100 },
+        "categoryId": { "type": "string", "maxLength": 100 },
+        "brand": { "type": "string", "maxLength": 100 },
+        "sku": { "type": "string", "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 5000 },
+        "images": { "type": "array" },
+        "price": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 50 },
+        "specifications": { "type": "object" },
+        "tags": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "published": { "type": "boolean" },
+        "variantDimensions": { "type": "array" },
+        "variants": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "category", "price", "published"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category classification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "slug": { "type": "string", "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "image": { "type": "string", "maxLength": 500 },
+        "displayOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "slug", "active"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order with multi-variant line items, payment details, TID verification and delivery details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string", "maxLength": 50 },
+        "customer": { "type": "object" },
+        "customerUid": { "type": "string" },
+        "customerEmail": { "type": "string", "maxLength": 150 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "customerPhone": { "type": "string", "maxLength": 50 },
+        "customerAddress": { "type": "string", "maxLength": 500 },
+        "customerCity": { "type": "string", "maxLength": 100 },
+        "customerType": { "type": "string", "enum": ["registered", "guest"] },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "shipping": { "type": "number" },
+        "total": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": ["New", "Confirmed", "Processing", "Shipped", "Completed", "Cancelled"]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["cod", "bank_transfer"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["unpaid", "payment_pending", "pending_verification", "verified", "rejected"]
+        },
+        "transactionId": { "type": "string", "maxLength": 100 },
+        "paidAmount": { "type": "number" },
+        "paymentProofUrl": { "type": "string", "maxLength": 50000 },
+        "paymentSubmittedAt": { "type": "string" },
+        "paymentNotes": { "type": "string", "maxLength": 1000 },
+        "selectedBankAccountId": { "type": "string", "maxLength": 100 },
+        "selectedBankName": { "type": "string", "maxLength": 100 },
+        "verifiedAt": { "type": "string" },
+        "verifiedBy": { "type": "string", "maxLength": 150 },
+        "rejectionReason": { "type": "string", "maxLength": 1000 },
+        "rejectedAt": { "type": "string" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["orderNumber", "customer", "items", "subtotal", "total", "status"]
+    },
+    "PaymentAccount": {
+      "title": "PaymentAccount",
+      "description": "Store official bank account details for advance order payments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bankName": { "type": "string", "maxLength": 100 },
+        "accountTitle": { "type": "string", "maxLength": 150 },
+        "accountNumber": { "type": "string", "maxLength": 50 },
+        "iban": { "type": "string", "maxLength": 50 },
+        "branchName": { "type": "string", "maxLength": 150 },
+        "branchCode": { "type": "string", "maxLength": 50 },
+        "instructions": { "type": "string", "maxLength": 2000 },
+        "active": { "type": "boolean" },
+        "isDefault": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["bankName", "accountTitle", "accountNumber", "active"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Homepage hero banner advertisement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "subtitle": { "type": "string", "maxLength": 250 },
+        "buttonText": { "type": "string", "maxLength": 60 },
+        "destination": { "type": "string", "maxLength": 200 },
+        "image": { "type": "string", "maxLength": 500 },
+        "active": { "type": "boolean" },
+        "displayOrder": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "active"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrative user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "maxLength": 150 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "superadmin"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role", "active"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Store-wide configuration and contact info",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "maxLength": 100 },
+        "tagline": { "type": "string", "maxLength": 150 },
+        "businessType": { "type": "string", "maxLength": 150 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phones": { "type": "array" },
+        "emails": { "type": "array" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "shippingFlatRate": { "type": "number" },
+        "freeShippingThreshold": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "CustomerUser": {
+      "title": "CustomerUser",
+      "description": "Registered customer profile and purchasing lead record",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 500 },
+        "city": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended"] },
+        "purchaseStatus": { "type": "string", "enum": ["no_purchase", "purchased"] },
+        "orderCount": { "type": "number" },
+        "totalSpend": { "type": "number" },
+        "firstOrderAt": { "type": "string" },
+        "lastOrderAt": { "type": "string" },
+        "notes": { "type": "string", "maxLength": 1000 }
+      },
+      "required": ["uid", "name", "email", "accountStatus", "purchaseStatus"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product catalog items"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Product categories"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer purchase orders"
+    },
+    "/banners/{bannerId}": {
+      "schema": "Banner",
+      "description": "Homepage promotional banners"
+    },
+    "/admin_users/{uid}": {
+      "schema": "AdminUser",
+      "description": "Admin authorization records"
+    },
+    "/settings/{documentId}": {
+      "schema": "Setting",
+      "description": "Global store settings"
+    },
+    "/users/{userId}": {
+      "schema": "CustomerUser",
+      "description": "Registered customer profiles and leads"
+    },
+    "/payment_accounts/{accountId}": {
+      "schema": "PaymentAccount",
+      "description": "Store official bank accounts for advance payment"
+    }
+  }
+}

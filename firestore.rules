@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Strict admin verification: Email must match authorized admin, and if admin_users/{uid} exists, it must have role == 'admin' and active == true
+    function isAuthorizedAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'gaugehouse1998@gmail.com' &&
+        (
+          !exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+          (
+            get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'admin' &&
+            get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.active == true
+          )
+        );
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Products: public can read, only authorized admin can write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // Categories: public can read, only authorized admin can write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // Banners: public can read, only authorized admin can write
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      // Anyone can create an order (customer checkout)
+      allow create: if request.resource.data.orderNumber is string &&
+                       request.resource.data.total is number;
+      // Authorized admin can read, update, and delete all orders
+      allow read, delete: if isAuthorizedAdmin();
+      // Authorized admin can update anything (status, paymentStatus, approve, reject)
+      allow update: if isAuthorizedAdmin();
+      // Customer can read their own order if userId or customerUid matches
+      allow read: if isSignedIn() && (
+        (resource.data.customer != null && resource.data.customer.userId == request.auth.uid) ||
+        resource.data.customerUid == request.auth.uid
+      );
+      // Customer can update their own order to submit TID and payment proof
+      allow update: if isSignedIn() && (
+        (resource.data.customerUid == request.auth.uid ||
+         (resource.data.customer != null && resource.data.customer.userId == request.auth.uid)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'paymentStatus', 'transactionId', 'paidAmount', 'paymentProofUrl',
+          'paymentSubmittedAt', 'paymentNotes', 'selectedBankAccountId', 'selectedBankName', 'updatedAt'
+        ]) &&
+        request.resource.data.paymentStatus == 'pending_verification'
+      );
+    }
+
+    // Payment / Bank Accounts: customers can read active accounts, only authorized admin can manage
+    match /payment_accounts/{accountId} {
+      allow read: if resource.data.active == true || isAuthorizedAdmin();
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // Customers database & leads: private to user and authorized admin
+    match /users/{userId} {
+      // Authenticated customer can read and update their own document
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Authorized admin can read, write, and manage all customer documents
+      allow read, write: if isAuthorizedAdmin();
+    }
+
+    // Settings
+    match /settings/{documentId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // Uploaded media metadata & durable storage: public/signedIn can read, admin or customer can write proof
+    match /uploaded_media/{mediaId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin() || (isSignedIn() && request.resource.data.folder == 'payment_proofs');
+    }
+
+    // Admin users list: strictly restricted
+    match /admin_users/{uid} {
+      // Allow user to check their own record if their email is the authorized admin email
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAuthorizedAdmin());
+      allow write: if isSignedIn() && (
+        (request.auth.uid == uid && request.auth.token.email == 'gaugehouse1998@gmail.com') ||
+        isAuthorizedAdmin()
+      );
+    }
+  }
+}
+

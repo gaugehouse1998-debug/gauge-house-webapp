@@ -1,0 +1,7 @@
+{
+  "name": "Gauge House — Precision Industrial Gauges & Equipment",
+  "description": "Online industrial product catalog & ordering system for precision gauges and industrial equipment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
