@@ -21,19 +21,35 @@ function MainApp() {
   const { publishedProducts, categories, loading } = useStore();
 
   const normalizeRoute = (rawRoute: string): string => {
-    let route = rawRoute;
+    let route = (rawRoute || '').trim();
+    // Strip leading hashes
+    route = route.replace(/^#+/, '');
+    
+    // Strip GitHub Pages base path variations
     if (route.startsWith('/gauge-house-webapp/')) {
       route = route.slice('/gauge-house-webapp/'.length - 1);
     } else if (route === '/gauge-house-webapp') {
       route = '/';
+    } else if (route.startsWith('gauge-house-webapp/')) {
+      route = '/' + route.slice('gauge-house-webapp/'.length);
+    } else if (route === 'gauge-house-webapp') {
+      route = '/';
     }
+
+    // Ensure leading slash if not empty
+    if (!route.startsWith('/')) {
+      route = '/' + route;
+    }
+
     return route || '/';
   };
 
   // Navigation route state
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
-    const hash = window.location.hash.replace(/^#/, '');
-    if (hash) return normalizeRoute(hash);
+    const hash = window.location.hash;
+    if (hash && hash !== '#') {
+      return normalizeRoute(hash);
+    }
     return normalizeRoute(window.location.pathname || '/');
   });
 
@@ -59,8 +75,8 @@ function MainApp() {
   // Sync route on popstate and hashchange
   useEffect(() => {
     const handleLocationChange = () => {
-      const hash = window.location.hash.replace(/^#/, '');
-      const rawRoute = hash || window.location.pathname || '/';
+      const hash = window.location.hash;
+      const rawRoute = (hash && hash !== '#') ? hash : (window.location.pathname || '/');
       setCurrentRoute(normalizeRoute(rawRoute));
     };
 

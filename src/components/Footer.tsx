@@ -122,7 +122,7 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
               <div className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
-                  {settings.phones.slice(0, 3).map((ph, idx) => (
+                  {(settings.phones || []).slice(0, 3).map((ph, idx) => (
                     <a
                       key={idx}
                       href={`tel:${ph.replace(/[^0-9]/g, '')}`}
@@ -137,7 +137,7 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
               <div className="flex items-start gap-2">
                 <Mail className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
-                  {settings.emails.map((em, idx) => (
+                  {(settings.emails || []).map((em, idx) => (
                     <a
                       key={idx}
                       href={`mailto:${em}`}

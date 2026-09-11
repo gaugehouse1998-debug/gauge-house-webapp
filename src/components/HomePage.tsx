@@ -331,7 +331,7 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                   <div className="flex flex-wrap gap-x-4 gap-y-1 font-semibold text-white">
-                    {settings.phones.map((ph, i) => (
+                    {(settings.phones || []).map((ph, i) => (
                       <span key={i}>{ph}</span>
                     ))}
                   </div>
@@ -351,11 +351,11 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                   <span>Chat on WhatsApp</span>
                 </button>
                 <a
-                  href={`tel:${settings.phones[0]?.replace(/[^0-9]/g, '') || '03354499186'}`}
+                  href={`tel:${settings.phones?.[0]?.replace(/[^0-9]/g, '') || '03354499186'}`}
                   className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all"
                 >
                   <Phone className="w-4 h-4 text-orange-400" />
-                  <span>Call 0335-4499186</span>
+                  <span>Call {settings.phones?.[0] || '0335-4499186'}</span>
                 </a>
               </div>
             </div>
@@ -371,8 +371,10 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
               </p>
               <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800/80 space-y-2 text-xs">
                 <p className="text-neutral-400">Official Tender & NTN Inquiries:</p>
-                <p className="text-white font-mono font-bold">{settings.emails[0]}</p>
-                <p className="text-neutral-400 font-mono">{settings.emails[1]}</p>
+                <p className="text-white font-mono font-bold">{settings.emails?.[0] || 'gaugehouse1998@gmail.com'}</p>
+                {settings.emails?.[1] && (
+                  <p className="text-neutral-400 font-mono">{settings.emails[1]}</p>
+                )}
               </div>
             </div>
           </div>

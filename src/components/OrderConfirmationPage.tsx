@@ -46,7 +46,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
       order.transactionId ? `*Transaction ID (TID):* ${order.transactionId}` : '',
       order.paymentStatus ? `*Payment Status:* ${order.paymentStatus}` : '',
       `\n*Items Ordered:*`,
-      ...order.items.map((it, idx) => {
+      ...(order.items || []).map((it, idx) => {
         const variantText = it.selectedVariant?.attributes
           ? ` (${Object.entries(it.selectedVariant.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')})`
           : '';
@@ -196,7 +196,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
-                  {order.items.map((item) => (
+                  {(order.items || []).map((item) => (
                     <tr key={item.id} className="hover:bg-neutral-50">
                       <td className="py-3 px-4">
                         <p className="font-bold text-neutral-900">{item.productTitle}</p>

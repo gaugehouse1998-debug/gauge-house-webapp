@@ -161,11 +161,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
   // Global Notification State
   const [notification, setNotification] = useState<{
-    type: 'success' | 'warning' | 'error';
+    type: 'success' | 'warning' | 'error' | 'info';
     message: string;
   } | null>(null);
 
-  const showNotification = (type: 'success' | 'warning' | 'error', message: string) => {
+  const showNotification = (type: 'success' | 'warning' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
     setTimeout(() => {
       setNotification((curr) => (curr?.message === message ? null : curr));

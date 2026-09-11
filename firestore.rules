@@ -74,9 +74,9 @@ service cloud.firestore {
       );
     }
 
-    // Payment / Bank Accounts: customers can read active accounts, only authorized admin can manage
+    // Payment / Bank Accounts: customers can read accounts to pay, only authorized admin can manage
     match /payment_accounts/{accountId} {
-      allow read: if resource.data.active == true || isAuthorizedAdmin();
+      allow read: if true;
       allow write: if isAuthorizedAdmin();
     }
 

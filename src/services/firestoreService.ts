@@ -829,7 +829,14 @@ export function subscribeToSettings(onData: (settings: StoreSettings) => void, o
     doc(db, 'settings', 'general'),
     (snapshot) => {
       if (snapshot.exists()) {
-        onData({ ...DEFAULT_STORE_SETTINGS, ...snapshot.data() } as StoreSettings);
+        const raw = snapshot.data();
+        const merged: StoreSettings = {
+          ...DEFAULT_STORE_SETTINGS,
+          ...raw,
+          phones: (Array.isArray(raw.phones) && raw.phones.length > 0) ? raw.phones : DEFAULT_STORE_SETTINGS.phones,
+          emails: (Array.isArray(raw.emails) && raw.emails.length > 0) ? raw.emails : DEFAULT_STORE_SETTINGS.emails,
+        };
+        onData(merged);
       } else {
         onData(DEFAULT_STORE_SETTINGS);
       }

@@ -194,16 +194,16 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     setVariants(generated);
   };
 
-  const handleUpdateVariant = (idx: number, field: keyof ProductVariant, val: any) => {
+  const handleUpdateVariant = (idx: number, field: keyof ProductVariant, val: unknown) => {
     setVariants((prev) => {
       const copy = [...prev];
       const updated = { ...copy[idx] };
       if (val === undefined || val === '' || val === null) {
-        delete updated[field];
+        delete (updated as Record<string, unknown>)[field];
       } else {
-        updated[field] = val;
+        (updated as Record<string, unknown>)[field] = val;
       }
-      copy[idx] = updated;
+      copy[idx] = updated as ProductVariant;
       return copy;
     });
   };
