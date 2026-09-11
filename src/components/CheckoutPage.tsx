@@ -37,7 +37,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   const {
     user,
     customerProfile,
-    signInWithGoogle,
     signInWithEmail,
     registerWithEmail
   } = useAuth();
@@ -58,7 +57,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   // Payment Selection States
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [selectedBankId, setSelectedBankId] = useState<string>('');
-  const [tidInput, setTidInput] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Inline Auth States (if not logged in)
@@ -155,18 +153,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsAuthenticating(true);
-    setAuthError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setAuthError(err?.message || 'Google sign-in was cancelled or encountered an issue.');
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
-
   const selectedBank =
     activePaymentAccounts.find((a) => a.id === selectedBankId) ||
     defaultPaymentAccount ||
@@ -175,6 +161,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    // Strict Login Requirement Check
+    if (!user) {
+      setErrorMessage('A registered and logged-in account is strictly required to place an order. Please register or sign in above.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     // Validation
     if (!customer.fullName.trim()) {
@@ -202,7 +195,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
       setIsSubmitting(true);
       setErrorMessage(null);
 
-      const customerUid = user?.uid || undefined;
+      const customerUid = user.uid;
       const isBank = paymentMethod === 'bank_transfer';
 
       const createdOrder = await createOrderInFirestore({
@@ -210,15 +203,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
           ...customer,
           userId: customerUid,
           customerUid: customerUid,
-          customerType: customerUid ? 'registered' : 'guest',
+          customerType: 'registered',
         },
-        customerUid: customerUid || null,
+        customerUid: customerUid,
         customerEmail: customer.email.trim().toLowerCase(),
         customerName: customer.fullName.trim(),
         customerPhone: customer.phone.trim(),
         customerAddress: customer.address.trim(),
         customerCity: customer.city.trim(),
-        customerType: customerUid ? 'registered' : 'guest',
+        customerType: 'registered',
         totalAmount: grandTotal,
         items,
         subtotal,
@@ -226,9 +219,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
         total: grandTotal,
         notes: customer.notes || '',
         paymentMethod,
-        paymentStatus: isBank ? (tidInput.trim() ? 'pending_verification' : 'payment_pending') : 'unpaid',
-        transactionId: tidInput.trim(),
-        paidAmount: isBank ? grandTotal : 0,
+        paymentStatus: isBank ? 'payment_pending' : 'unpaid',
+        orderStatus: isBank ? 'payment_pending' : 'New',
+        status: isBank ? 'payment_pending' : 'New',
+        transactionId: '',
+        paidAmount: 0,
         selectedBankAccountId: isBank ? selectedBank?.id || '' : '',
         selectedBankName: isBank ? selectedBank?.bankName || '' : '',
       });
@@ -390,16 +385,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                     ) : (
                       <LogIn className="w-3.5 h-3.5" />
                     )}
-                    <span>{authMode === 'register' ? 'Register & Continue' : 'Sign In & Continue'}</span>
-                  </button>
-                  <span className="text-[11px] text-neutral-400">or</span>
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={isAuthenticating}
-                    className="px-4 py-2 text-xs font-bold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Continue with Google
+                    <span>{authMode === 'register' ? 'Register & Continue to Checkout' : 'Sign In & Continue to Checkout'}</span>
                   </button>
                 </div>
               </form>
@@ -438,8 +424,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                         <span>Registered Account Linked: {customerProfile?.name || user.email}</span>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between flex-wrap gap-2 p-3 rounded-xl bg-neutral-100 border border-neutral-200 text-xs text-neutral-700">
-                        <span>Guest Mode. You can sign in above to link your customer lead profile.</span>
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium">
+                        ⚠️ Please Register or Sign In above. Orders cannot be submitted without an active registered account.
                       </div>
                     )}
                   </div>
@@ -654,95 +640,76 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                       </label>
                     </div>
 
-                    {/* DYNAMIC BANK DETAILS ACCORDION (Visible ONLY if Advance Bank Payment is selected) */}
+                    {/* DYNAMIC BANK DETAILS ACCORDION (Visible ONLY if Advance Bank Payment is selected and user is logged in) */}
                     {paymentMethod === 'bank_transfer' && (
-                      <div className="mt-4 p-5 rounded-2xl bg-neutral-900 text-white border border-neutral-800 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-800">
-                          <div>
-                            <span className="text-xs font-bold text-orange-400 uppercase tracking-wider block">
-                              Official Gauge House Bank Account
-                            </span>
-                            <p className="text-xs text-neutral-400">
-                              Transfer exactly <strong className="text-white font-mono">{formatPrice(grandTotal)}</strong> to the account below:
+                      <div className="mt-4">
+                        {!user ? (
+                          <div className="p-5 rounded-2xl bg-neutral-900 text-white border border-neutral-800 space-y-1.5">
+                            <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                              <Lock className="w-4 h-4" />
+                              Official Bank Details Hidden
+                            </p>
+                            <p className="text-xs text-neutral-400 leading-relaxed">
+                              Official Gauge House bank accounts are strictly accessible to registered and logged-in customers. Please register or sign in above to view active bank accounts and proceed.
                             </p>
                           </div>
-
-                          {activePaymentAccounts.length > 1 && (
-                            <select
-                              value={selectedBankId}
-                              onChange={(e) => setSelectedBankId(e.target.value)}
-                              className="text-xs bg-neutral-800 border border-neutral-700 text-white rounded-lg px-2.5 py-1.5"
-                            >
-                              {activePaymentAccounts.map((b) => (
-                                <option key={b.id} value={b.id}>
-                                  {b.bankName} - {b.accountNumber}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-
-                        {selectedBank ? (
-                          <div className="space-y-3 text-xs">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80">
-                                <span className="text-[10px] text-neutral-400 uppercase font-bold block">
-                                  Bank &amp; Title
+                        ) : selectedBank ? (
+                          <div className="p-5 rounded-2xl bg-neutral-900 text-white border border-neutral-800 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-800">
+                              <div>
+                                <span className="text-xs font-bold text-orange-400 uppercase tracking-wider block">
+                                  Official Gauge House Bank Account
                                 </span>
-                                <span className="font-extrabold text-white text-sm block">
-                                  {selectedBank.bankName}
-                                </span>
-                                <span className="text-xs text-neutral-300">
-                                  {selectedBank.accountTitle}
-                                </span>
+                                <p className="text-xs text-neutral-400">
+                                  Transfer exactly <strong className="text-white font-mono">{formatPrice(grandTotal)}</strong> to the account below:
+                                </p>
                               </div>
 
-                              {/* Account Number with 1-click copy */}
-                              <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80 flex items-center justify-between gap-2">
-                                <div>
+                              {activePaymentAccounts.length > 1 && (
+                                <select
+                                  value={selectedBankId}
+                                  onChange={(e) => setSelectedBankId(e.target.value)}
+                                  className="text-xs bg-neutral-800 border border-neutral-700 text-white rounded-lg px-2.5 py-1.5"
+                                >
+                                  {activePaymentAccounts.map((b) => (
+                                    <option key={b.id} value={b.id}>
+                                      {b.bankName} - {b.accountNumber}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+
+                            <div className="space-y-3 text-xs">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80">
                                   <span className="text-[10px] text-neutral-400 uppercase font-bold block">
-                                    Account Number
+                                    Bank &amp; Title
                                   </span>
-                                  <span className="font-mono font-extrabold text-white text-sm sm:text-base tracking-wider">
-                                    {selectedBank.accountNumber}
+                                  <span className="font-extrabold text-white text-sm block">
+                                    {selectedBank.bankName}
+                                  </span>
+                                  <span className="text-xs text-neutral-300">
+                                    {selectedBank.accountTitle}
                                   </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopy(selectedBank.accountNumber, 'chk_acc')}
-                                  className="px-2.5 py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                                >
-                                  {copiedKey === 'chk_acc' ? (
-                                    <>
-                                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                      <span className="text-emerald-400">Copied!</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="w-3.5 h-3.5" />
-                                      <span>Copy</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
 
-                              {/* IBAN */}
-                              {selectedBank.iban && (
-                                <div className="sm:col-span-2 bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80 flex items-center justify-between gap-2">
-                                  <div className="min-w-0">
+                                {/* Account Number with 1-click copy */}
+                                <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80 flex items-center justify-between gap-2">
+                                  <div>
                                     <span className="text-[10px] text-neutral-400 uppercase font-bold block">
-                                      IBAN / Raast Direct
+                                      Account Number
                                     </span>
-                                    <span className="font-mono font-bold text-neutral-200 text-xs tracking-wider truncate block">
-                                      {selectedBank.iban}
+                                    <span className="font-mono font-extrabold text-white text-sm sm:text-base tracking-wider">
+                                      {selectedBank.accountNumber}
                                     </span>
                                   </div>
                                   <button
                                     type="button"
-                                    onClick={() => handleCopy(selectedBank.iban!, 'chk_iban')}
-                                    className="px-2.5 py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                                    onClick={() => handleCopy(selectedBank.accountNumber, 'chk_acc')}
+                                    className="px-2.5 py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                                   >
-                                    {copiedKey === 'chk_iban' ? (
+                                    {copiedKey === 'chk_acc' ? (
                                       <>
                                         <Check className="w-3.5 h-3.5 text-emerald-400" />
                                         <span className="text-emerald-400">Copied!</span>
@@ -755,34 +722,69 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                                     )}
                                   </button>
                                 </div>
+
+                                {/* Branch Code */}
+                                {selectedBank.branchCode && (
+                                  <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80">
+                                    <span className="text-[10px] text-neutral-400 uppercase font-bold block">
+                                      Branch Code
+                                    </span>
+                                    <span className="font-mono font-bold text-white text-sm">
+                                      {selectedBank.branchCode}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* IBAN */}
+                                {selectedBank.iban && (
+                                  <div className="sm:col-span-2 bg-neutral-800/80 p-3 rounded-xl border border-neutral-700/80 flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <span className="text-[10px] text-neutral-400 uppercase font-bold block">
+                                        IBAN / Raast Direct
+                                      </span>
+                                      <span className="font-mono font-bold text-neutral-200 text-xs tracking-wider truncate block">
+                                        {selectedBank.iban}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopy(selectedBank.iban!, 'chk_iban')}
+                                      className="px-2.5 py-1.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                                    >
+                                      {copiedKey === 'chk_iban' ? (
+                                        <>
+                                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                          <span className="text-emerald-400">Copied!</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-3.5 h-3.5" />
+                                          <span>Copy</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Instructions */}
+                              {selectedBank.instructions && (
+                                <p className="text-[11px] text-neutral-400 leading-relaxed pt-1">
+                                  {selectedBank.instructions}
+                                </p>
                               )}
-                            </div>
 
-                            {/* Instructions */}
-                            {selectedBank.instructions && (
-                              <p className="text-[11px] text-neutral-400 leading-relaxed pt-1">
-                                {selectedBank.instructions}
-                              </p>
-                            )}
-
-                            {/* Optional Quick TID Entry */}
-                            <div className="pt-2 border-t border-neutral-800">
-                              <label className="block text-xs font-bold text-orange-400 mb-1">
-                                Transaction ID (TID) / Reference No. <span className="text-neutral-400 font-normal">(Optional now; can submit on confirmation screen)</span>
-                              </label>
-                              <input
-                                type="text"
-                                value={tidInput}
-                                onChange={(e) => setTidInput(e.target.value)}
-                                placeholder="e.g. FT26090... or 029104810294"
-                                className="w-full font-mono text-xs px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-orange-500"
-                              />
+                              {/* Notice about post-order TID submission */}
+                              <div className="pt-2 border-t border-neutral-800 text-xs text-neutral-400 flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-orange-400 shrink-0" />
+                                <span>You can submit your Transaction ID (TID) and payment receipt immediately on the order confirmation screen after placing the order.</span>
+                              </div>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-xs text-neutral-400">
-                            Official bank details will be provided upon placing order.
-                          </p>
+                          <div className="p-4 rounded-2xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-400">
+                            No active bank account currently available. Please contact support.
+                          </div>
                         )}
                       </div>
                     )}
@@ -880,12 +882,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 px-6 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:bg-neutral-400 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  className={`w-full py-3.5 px-6 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
+                    !user
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-orange-600 hover:bg-orange-700 disabled:bg-neutral-400'
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       <span>Placing Your Order...</span>
+                    </>
+                  ) : !user ? (
+                    <>
+                      <LogIn className="w-4 h-4" />
+                      <span>Please Register or Login to Place Order</span>
                     </>
                   ) : (
                     <>

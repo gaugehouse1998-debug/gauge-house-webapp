@@ -24,6 +24,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { CustomerUser, Order } from '../../types';
+import { getCustomerWelcomeMailto, getOrderConfirmationMailto } from '../../utils/emailComposer';
 
 interface CustomersViewProps {
   customers: CustomerUser[];
@@ -393,12 +394,22 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Email (Visible, copyable) */}
+                      {/* Email (Clickable Mailto & Copyable) */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-neutral-800 text-xs font-semibold select-all">
-                            {c.email || '—'}
-                          </span>
+                          {c.email ? (
+                            <a
+                              href={getCustomerWelcomeMailto(c.email, c.name)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="font-mono text-orange-600 hover:text-orange-700 hover:underline text-xs font-semibold select-all inline-flex items-center gap-1"
+                              title="Click to Email Customer (Welcome Message)"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                              <span>{c.email}</span>
+                            </a>
+                          ) : (
+                            <span className="font-mono text-neutral-400 text-xs">—</span>
+                          )}
                           {c.email && (
                             <button
                               type="button"
@@ -481,17 +492,30 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCustomer(c);
-                          }}
-                          className="px-2.5 py-1 bg-neutral-100 hover:bg-orange-600 hover:text-white text-neutral-700 font-bold rounded-lg text-[11px] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>Details</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {c.email && (
+                            <a
+                              href={getCustomerWelcomeMailto(c.email, c.name)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-2.5 py-1 bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-700 font-bold rounded-lg text-[11px] transition-colors inline-flex items-center gap-1 cursor-pointer border border-orange-200 hover:border-orange-600"
+                              title="Email Customer with Welcome Message"
+                            >
+                              <Mail className="w-3 h-3" />
+                              <span>Email Customer</span>
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCustomer(c);
+                            }}
+                            className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-800 hover:text-white text-neutral-700 font-bold rounded-lg text-[11px] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Details</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -610,23 +634,44 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                     <span className="text-[10px] text-neutral-400 font-bold block">
                       Email Address
                     </span>
-                    <span className="font-semibold text-neutral-900 select-all font-mono">
-                      {selectedCustomer.email || 'None'}
-                    </span>
+                    {selectedCustomer.email ? (
+                      <a
+                        href={getCustomerWelcomeMailto(selectedCustomer.email, selectedCustomer.name)}
+                        className="font-semibold text-orange-600 hover:text-orange-700 hover:underline select-all font-mono inline-flex items-center gap-1"
+                        title="Click to Email Customer"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-orange-500" />
+                        <span>{selectedCustomer.email}</span>
+                      </a>
+                    ) : (
+                      <span className="font-semibold text-neutral-400 font-mono">None</span>
+                    )}
                   </div>
-                  {selectedCustomer.email && (
-                    <button
-                      onClick={() => handleCopy(selectedCustomer.email, 'modal-email', 'Email')}
-                      className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors"
-                      title="Copy Email"
-                    >
-                      {copiedKey === 'modal-email' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {selectedCustomer.email && (
+                      <>
+                        <a
+                          href={getCustomerWelcomeMailto(selectedCustomer.email, selectedCustomer.name)}
+                          className="px-2.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors shadow-xs"
+                          title="Open email composer with pre-filled Welcome message"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Email Customer</span>
+                        </a>
+                        <button
+                          onClick={() => handleCopy(selectedCustomer.email, 'modal-email', 'Email')}
+                          className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors"
+                          title="Copy Email"
+                        >
+                          {copiedKey === 'modal-email' ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Phone */}
@@ -789,21 +834,31 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                         ))}
                       </div>
 
-                      {onSelectOrder && (
-                        <div className="flex justify-end pt-1">
+                      <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                        {ord.customer?.email && (
+                          <a
+                            href={getOrderConfirmationMailto(ord)}
+                            className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer bg-orange-50 px-2 py-0.5 rounded border border-orange-200"
+                            title="Send Order Confirmation Email"
+                          >
+                            <Mail className="w-3 h-3" />
+                            <span>Email Order Confirmation</span>
+                          </a>
+                        )}
+                        {onSelectOrder && (
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedCustomer(null);
                               onSelectOrder(ord);
                             }}
-                            className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 cursor-pointer"
+                            className="text-[11px] font-bold text-neutral-600 hover:text-orange-600 flex items-center gap-1 cursor-pointer ml-auto"
                           >
                             <span>Open Order in Orders Tab</span>
                             <ExternalLink className="w-3 h-3" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

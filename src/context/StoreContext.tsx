@@ -5,8 +5,7 @@ import {
   subscribeToCategories,
   subscribeToBanners,
   subscribeToSettings,
-  subscribeToPaymentAccounts,
-  seedDefaultPaymentAccountAction
+  subscribeToPaymentAccounts
 } from '../services/firestoreService';
 import { DEFAULT_STORE_SETTINGS } from '../data/defaults';
 
@@ -86,12 +85,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const unsubPayments = subscribeToPaymentAccounts(
       (data) => {
         setPaymentAccounts(data);
-        // Seed default Meezan account if none exist at all
-        if (data.length === 0) {
-          seedDefaultPaymentAccountAction().catch((err) =>
-            console.warn('Could not seed default bank account:', err)
-          );
-        }
       },
       (err) => {
         console.warn('Payment accounts subscription note:', err);

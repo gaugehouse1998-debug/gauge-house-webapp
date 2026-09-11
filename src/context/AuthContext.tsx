@@ -2,13 +2,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   User,
   onAuthStateChanged,
-  signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
   signOut as fbSignOut
 } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import {
   checkUserIsAdmin,
   ensureAdminRecord,
@@ -35,7 +34,6 @@ interface AuthContextType {
     address?: string;
     city?: string;
   }) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshAdminStatus: () => Promise<void>;
   updateCustomerData: (data: Partial<CustomerUser>) => Promise<void>;
@@ -194,28 +192,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await verifyAdmin(result.user);
   };
 
-  const signInWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      if (result.user) {
-        setUser(result.user);
-        await verifyAdmin(result.user);
-        await syncProfile(result.user);
-      }
-    } catch (error: any) {
-      if (
-        error?.code === 'auth/popup-closed-by-user' ||
-        error?.code === 'auth/cancelled-popup-request' ||
-        error?.message?.includes('popup-closed-by-user') ||
-        error?.message?.includes('cancelled-popup-request')
-      ) {
-        return;
-      }
-      console.error('Sign-in error:', error);
-      throw error;
-    }
-  };
-
   const signOut = async () => {
     try {
       await fbSignOut(auth);
@@ -266,7 +242,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithEmail,
         adminSignInWithEmail,
         registerWithEmail,
-        signInWithGoogle,
         signOut,
         refreshAdminStatus,
         updateCustomerData,

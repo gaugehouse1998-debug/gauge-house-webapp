@@ -20,11 +20,21 @@ import { seedDefaultCategories } from './services/firestoreService';
 function MainApp() {
   const { publishedProducts, categories, loading } = useStore();
 
+  const normalizeRoute = (rawRoute: string): string => {
+    let route = rawRoute;
+    if (route.startsWith('/gauge-house-webapp/')) {
+      route = route.slice('/gauge-house-webapp/'.length - 1);
+    } else if (route === '/gauge-house-webapp') {
+      route = '/';
+    }
+    return route || '/';
+  };
+
   // Navigation route state
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const hash = window.location.hash.replace(/^#/, '');
-    if (hash) return hash;
-    return window.location.pathname || '/';
+    if (hash) return normalizeRoute(hash);
+    return normalizeRoute(window.location.pathname || '/');
   });
 
   // Modals & temporary views state
@@ -50,8 +60,8 @@ function MainApp() {
   useEffect(() => {
     const handleLocationChange = () => {
       const hash = window.location.hash.replace(/^#/, '');
-      const route = hash || window.location.pathname || '/';
-      setCurrentRoute(route);
+      const rawRoute = hash || window.location.pathname || '/';
+      setCurrentRoute(normalizeRoute(rawRoute));
     };
 
     window.addEventListener('popstate', handleLocationChange);

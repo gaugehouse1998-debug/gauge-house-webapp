@@ -31,7 +31,10 @@ import {
   UserCheck,
   UserPlus,
   Award,
-  Copy
+  Copy,
+  CreditCard,
+  X,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
@@ -43,6 +46,9 @@ import {
   saveBannerInFirestore,
   deleteBannerInFirestore,
   updateOrderStatusInFirestore,
+  deleteOrderInFirestore,
+  verifyOrderPaymentInFirestore,
+  rejectOrderPaymentInFirestore,
   saveStoreSettingsInFirestore,
   subscribeToOrders,
   subscribeToCustomers,
@@ -54,8 +60,10 @@ import {
 import { Product, Category, Banner, Order, StoreSettings, CustomerUser } from '../../types';
 import { AdminProductModal } from './AdminProductModal';
 import { CustomersView } from './CustomersView';
+import { AdminBankAccountsView } from './AdminBankAccountsView';
 import { SingleImageUploader } from './ImageUploader';
 import { deleteImageFromStorage } from '../../lib/storageService';
+import { getOrderConfirmationMailto, getCustomerWelcomeMailto } from '../../utils/emailComposer';
 
 interface AdminPortalProps {
   navigate: (route: string) => void;
@@ -63,10 +71,10 @@ interface AdminPortalProps {
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   const { user, isAdmin, loading: authLoading, signInWithEmail, signOut, refreshAdminStatus } = useAuth();
-  const { products, categories, banners, settings, formatPrice } = useStore();
+  const { products, categories, banners, settings, formatPrice, paymentAccounts } = useStore();
 
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'orders' | 'customers' | 'leads' | 'products' | 'categories' | 'banners' | 'settings' | 'tools'
+    'dashboard' | 'orders' | 'customers' | 'leads' | 'payments' | 'products' | 'categories' | 'banners' | 'settings' | 'tools'
   >('dashboard');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -166,7 +174,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   // Delete Confirmation Modal State
   const [deleteModal, setDeleteModal] = useState<{
     open: boolean;
-    type: 'banner' | 'product' | 'category';
+    type: 'banner' | 'product' | 'category' | 'order';
     id: string;
     title: string;
     imageUrl?: string;
@@ -181,6 +189,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
     isDeleting: false,
     error: null,
   });
+
+  // Advance Payment Verification State
+  const [rejectModal, setRejectModal] = useState<{
+    open: boolean;
+    orderId: string;
+    orderNumber: string;
+    reason: string;
+    isSubmitting: boolean;
+  }>({
+    open: false,
+    orderId: '',
+    orderNumber: '',
+    reason: '',
+    isSubmitting: false,
+  });
+
+  const [paymentProofModalUrl, setPaymentProofModalUrl] = useState<string | null>(null);
 
   // Settings form state
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(settings);
@@ -537,6 +562,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
           await deleteImageFromStorage(cat.image || cat.imageUrl || '');
         }
         showNotification('success', `Category "${deleteModal.title}" deleted from Firestore.`);
+      } else if (deleteModal.type === 'order') {
+        const ord = orders.find((o) => o.id === deleteModal.id);
+        const paymentProofUrl = ord?.paymentProofUrl;
+
+        // 1. Delete Firestore order document and remove payment proof from storage if applicable
+        await deleteOrderInFirestore(deleteModal.id, paymentProofUrl);
+
+        // 2. Remove order from local orders list immediately
+        setOrders((prev) => prev.filter((o) => o.id !== deleteModal.id));
+
+        // 3. Close order inspection modal if open on this order
+        if (inspectingOrder?.id === deleteModal.id) {
+          setInspectingOrder(null);
+        }
+
+        showNotification('success', `Order "${deleteModal.title}" permanently deleted from Firestore.`);
       }
 
       setDeleteModal({
@@ -556,6 +597,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
         error: err?.message || 'Failed to delete from Firestore. Please try again.',
       }));
     }
+  };
+
+  const handleDeleteOrderClick = (order: Order) => {
+    setDeleteModal({
+      open: true,
+      type: 'order',
+      id: order.id,
+      title: order.orderNumber ? `Order #${order.orderNumber}` : `Order ${order.id}`,
+      imageUrl: order.paymentProofUrl || undefined,
+      isDeleting: false,
+      error: null,
+    });
   };
 
   const handleSaveProduct = async (data: Partial<Product>) => {
@@ -681,7 +734,129 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
   // Order Status Handler
   const handleUpdateOrderStatus = async (orderId: string, status: any) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (order && order.paymentMethod === 'bank_transfer') {
+      const lower = String(status).toLowerCase();
+      if (
+        (lower === 'processing' || lower === 'shipped' || lower === 'completed') &&
+        order.paymentStatus !== 'verified'
+      ) {
+        showNotification(
+          'error',
+          'Admin verification is required for Advance Payment orders before moving to Processing or Shipped. Please verify the TID first.'
+        );
+        return;
+      }
+    }
     await updateOrderStatusInFirestore(orderId, status);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status, orderStatus: status } : o)));
+    if (inspectingOrder && inspectingOrder.id === orderId) {
+      setInspectingOrder((prev) => (prev ? { ...prev, status, orderStatus: status } : null));
+    }
+    showNotification('success', `Order status updated to ${status}.`);
+  };
+
+  // Payment Verification Handlers
+  const handleVerifyPayment = async (order: Order) => {
+    try {
+      await verifyOrderPaymentInFirestore(order.id, user?.email || 'admin@gaugehouse.com');
+      showNotification('success', `Payment for Order ${order.orderNumber} verified. Status updated to Processing.`);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? {
+                ...o,
+                paymentStatus: 'verified',
+                orderStatus: 'processing',
+                status: 'Processing',
+                verifiedAt: new Date().toISOString(),
+                verifiedBy: user?.email || 'admin',
+                rejectionReason: undefined,
+              }
+            : o
+        )
+      );
+      if (inspectingOrder && inspectingOrder.id === order.id) {
+        setInspectingOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                paymentStatus: 'verified',
+                orderStatus: 'processing',
+                status: 'Processing',
+                verifiedAt: new Date().toISOString(),
+                verifiedBy: user?.email || 'admin',
+                rejectionReason: undefined,
+              }
+            : null
+        );
+      }
+    } catch (err: any) {
+      showNotification('error', err?.message || 'Failed to verify payment.');
+    }
+  };
+
+  const handleOpenRejectModal = (order: Order) => {
+    setRejectModal({
+      open: true,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      reason: 'Transaction ID not found in bank statement / Deposit mismatch. Please resubmit valid payment proof.',
+      isSubmitting: false,
+    });
+  };
+
+  const handleConfirmRejectPayment = async () => {
+    if (!rejectModal.orderId || !rejectModal.reason.trim()) {
+      showNotification('error', 'Please provide a reason for payment rejection.');
+      return;
+    }
+    setRejectModal((prev) => ({ ...prev, isSubmitting: true }));
+    try {
+      await rejectOrderPaymentInFirestore(
+        rejectModal.orderId,
+        rejectModal.reason.trim(),
+        user?.email || 'admin@gaugehouse.com'
+      );
+      showNotification(
+        'warning',
+        `Payment for Order ${rejectModal.orderNumber} rejected. Customer can resubmit proof.`
+      );
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === rejectModal.orderId
+            ? {
+                ...o,
+                paymentStatus: 'rejected',
+                orderStatus: 'payment_issue',
+                status: 'payment_issue',
+                rejectionReason: rejectModal.reason.trim(),
+                rejectedAt: new Date().toISOString(),
+                verifiedBy: user?.email || 'admin',
+              }
+            : o
+        )
+      );
+      if (inspectingOrder && inspectingOrder.id === rejectModal.orderId) {
+        setInspectingOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                paymentStatus: 'rejected',
+                orderStatus: 'payment_issue',
+                status: 'payment_issue',
+                rejectionReason: rejectModal.reason.trim(),
+                rejectedAt: new Date().toISOString(),
+                verifiedBy: user?.email || 'admin',
+              }
+            : null
+        );
+      }
+      setRejectModal({ open: false, orderId: '', orderNumber: '', reason: '', isSubmitting: false });
+    } catch (err: any) {
+      showNotification('error', err?.message || 'Failed to reject payment.');
+      setRejectModal((prev) => ({ ...prev, isSubmitting: false }));
+    }
   };
 
   // Save Settings Handler
@@ -777,6 +952,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               { id: 'orders', label: `Orders (${orders.length})`, icon: ShoppingCart },
               { id: 'customers', label: `Customers (${customers.length})`, icon: Users },
               { id: 'leads', label: `Customer Leads (${purchasingCustomersCount})`, icon: UserCheck },
+              { id: 'payments', label: `Payment Accounts (${paymentAccounts.length})`, icon: CreditCard },
               { id: 'products', label: `Products (${products.length})`, icon: Package },
               { id: 'categories', label: `Categories (${categories.length})`, icon: FolderTree },
               { id: 'banners', label: `Hero Banners (${banners.length})`, icon: Sliders },
@@ -1098,10 +1274,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                       <th className="py-3 px-4">Order ID & Date</th>
                       <th className="py-3 px-4">Customer & Phone</th>
                       <th className="py-3 px-4">Address & City</th>
+                      <th className="py-3 px-4">Payment</th>
                       <th className="py-3 px-4">Variant Items</th>
                       <th className="py-3 px-4">Grand Total</th>
                       <th className="py-3 px-4">Status Update</th>
-                      <th className="py-3 px-4 text-right">Details</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
@@ -1120,14 +1297,64 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                           <td className="py-3 px-4">
                             <span className="font-semibold text-neutral-900 block">{order.customer.fullName}</span>
                             <span className="text-neutral-500 block">{order.customer.phone}</span>
+                            {order.customer.email && (
+                              <a
+                                href={getOrderConfirmationMailto(order)}
+                                className="font-mono text-orange-600 hover:text-orange-700 hover:underline text-[11px] font-semibold inline-flex items-center gap-1 mt-0.5"
+                                title="Click to Email Customer (Order Confirmation)"
+                              >
+                                <Mail className="w-3 h-3 text-orange-500 shrink-0" />
+                                <span className="truncate max-w-[140px]">{order.customer.email}</span>
+                              </a>
+                            )}
                             {order.customer.companyName && (
-                              <span className="text-[10px] text-orange-600">{order.customer.companyName}</span>
+                              <span className="text-[10px] text-orange-600 block">{order.customer.companyName}</span>
                             )}
                           </td>
 
                           <td className="py-3 px-4 max-w-xs truncate">
                             <span className="font-semibold block">{order.customer.city}</span>
                             <span className="text-[11px] text-neutral-500 truncate block">{order.customer.address}</span>
+                          </td>
+
+                          <td className="py-3 px-4">
+                            {order.paymentMethod === 'bank_transfer' ? (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">
+                                  Advance Bank
+                                </span>
+                                <div>
+                                  {order.paymentStatus === 'verified' ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      Verified
+                                    </span>
+                                  ) : order.paymentStatus === 'pending_verification' ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 animate-pulse">
+                                      <Clock className="w-3 h-3" />
+                                      TID Submitted
+                                    </span>
+                                  ) : order.paymentStatus === 'rejected' ? (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800">
+                                      Rejected
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-100 text-neutral-600">
+                                      Pending TID
+                                    </span>
+                                  )}
+                                </div>
+                                {order.transactionId && (
+                                  <span className="font-mono text-[10px] text-neutral-500 block truncate max-w-[120px]">
+                                    TID: {order.transactionId}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
+                                Cash on Delivery
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3 px-4">
@@ -1158,19 +1385,39 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                             </select>
                           </td>
 
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => setInspectingOrder(order)}
-                              className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg font-bold text-xs cursor-pointer"
-                            >
-                              Inspect
-                            </button>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {order.customer?.email && (
+                                <a
+                                  href={getOrderConfirmationMailto(order)}
+                                  className="px-2 py-1.5 bg-neutral-100 hover:bg-orange-50 hover:text-orange-700 text-neutral-700 rounded-lg font-bold text-xs inline-flex items-center gap-1 cursor-pointer transition-colors border border-neutral-200"
+                                  title="Email Customer with Order Confirmation"
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-orange-600" />
+                                  <span className="hidden xl:inline">Email Customer</span>
+                                </a>
+                              )}
+                              <button
+                                onClick={() => setInspectingOrder(order)}
+                                className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg font-bold text-xs cursor-pointer transition-colors"
+                              >
+                                Inspect
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOrderClick(order)}
+                                className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg font-bold text-xs inline-flex items-center gap-1 cursor-pointer transition-colors border border-red-200"
+                                title="Permanently Delete Order"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                <span className="hidden xl:inline">Delete</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-neutral-400">
+                        <td colSpan={8} className="py-8 text-center text-neutral-400">
                           No orders matching criteria.
                         </td>
                       </tr>
@@ -1215,6 +1462,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
             }}
             onUpdateCustomerStatus={handleUpdateCustomerStatus}
             onShowNotification={showNotification}
+          />
+        )}
+
+        {/* ========================================================= */}
+        {/* PAYMENT / BANK ACCOUNTS TAB */}
+        {/* ========================================================= */}
+        {activeTab === 'payments' && (
+          <AdminBankAccountsView
+            accounts={paymentAccounts}
+            showNotification={showNotification}
           />
         )}
 
@@ -1905,9 +2162,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <strong>Email:</strong>{' '}
-                  <span className="font-mono text-neutral-900 font-semibold select-all">
-                    {inspectingOrder.customer.email}
-                  </span>
+                  <a
+                    href={getOrderConfirmationMailto(inspectingOrder)}
+                    className="font-mono text-orange-600 hover:text-orange-700 hover:underline font-semibold select-all inline-flex items-center gap-1"
+                    title="Send Order Confirmation Email"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-orange-500" />
+                    <span>{inspectingOrder.customer.email}</span>
+                  </a>
+                  <a
+                    href={getOrderConfirmationMailto(inspectingOrder)}
+                    className="px-2 py-0.5 rounded bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold text-[10px] inline-flex items-center gap-1 transition-colors ml-1"
+                    title="Open email composer with pre-filled Order Confirmation"
+                  >
+                    <Mail className="w-3 h-3" />
+                    <span>Email Customer</span>
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
@@ -1917,7 +2187,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                     className="p-1 rounded text-neutral-400 hover:text-orange-600 hover:bg-neutral-200 transition-colors"
                     title="Copy Email"
                   >
-                    <Mail className="w-3.5 h-3.5" />
+                    <Copy className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -1979,6 +2249,197 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               </div>
             </div>
 
+            {/* Payment Verification & Bank Audit Section */}
+            <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/80 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-orange-600" />
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-neutral-800">
+                    Payment Method &amp; Verification Audit
+                  </h4>
+                </div>
+                <div>
+                  {inspectingOrder.paymentMethod === 'bank_transfer' ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                      Advance Bank Transfer
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-neutral-200 text-neutral-800">
+                      Cash on Delivery (COD)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {inspectingOrder.paymentMethod === 'bank_transfer' ? (
+                <div className="space-y-3 pt-2 border-t border-neutral-200 text-xs">
+                  {/* TID & Selected Bank */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-neutral-200">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-neutral-500 block">
+                        Transaction ID (TID)
+                      </span>
+                      {inspectingOrder.transactionId ? (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="font-mono font-extrabold text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded text-xs select-all">
+                            {inspectingOrder.transactionId}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(inspectingOrder.transactionId!);
+                              showNotification('success', `Copied TID: ${inspectingOrder.transactionId}`);
+                            }}
+                            className="p-1 text-neutral-400 hover:text-orange-600 rounded cursor-pointer"
+                            title="Copy TID"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-neutral-400 italic">No TID submitted yet by customer</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-neutral-500 block">
+                        Target Bank Account
+                      </span>
+                      <p className="font-bold text-neutral-800 mt-0.5">
+                        {inspectingOrder.selectedBankName || inspectingOrder.selectedBankAccountId || 'Default Bank Account'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Amount Check: Order Total vs Paid Amount */}
+                  <div className="bg-white p-3 rounded-lg border border-neutral-200 space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-neutral-500 block">
+                      Amount Check Audit (Grand Total vs Submitted Payment)
+                    </span>
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <span className="text-neutral-600">Order Grand Total:</span>
+                      <span className="font-extrabold text-neutral-900 text-sm">
+                        {formatPrice(inspectingOrder.total)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-semibold">
+                      <span className="text-neutral-600">Customer Reported Paid Amount:</span>
+                      <span className="font-extrabold text-neutral-900 text-sm">
+                        {typeof inspectingOrder.paidAmount === 'number'
+                          ? formatPrice(inspectingOrder.paidAmount)
+                          : 'Not reported'}
+                      </span>
+                    </div>
+
+                    {/* Mismatch Alert or Match Confirmation */}
+                    {typeof inspectingOrder.paidAmount === 'number' && inspectingOrder.paidAmount > 0 ? (
+                      Math.abs(inspectingOrder.paidAmount - inspectingOrder.total) > 0.01 ? (
+                        <div className="p-2.5 rounded-lg bg-red-50 border border-red-300 text-red-900 flex items-start gap-2 text-xs font-medium">
+                          <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                          <div>
+                            <strong className="block text-red-950 font-bold">
+                              AMOUNT MISMATCH DETECTED
+                            </strong>
+                            <span>
+                              Order Grand Total is {formatPrice(inspectingOrder.total)}, but customer submitted {formatPrice(inspectingOrder.paidAmount)}. Discrepancy: {formatPrice(Math.abs(inspectingOrder.total - inspectingOrder.paidAmount))}.
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-center gap-2 text-xs font-semibold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Exact Match: Paid amount matches order total.</span>
+                        </div>
+                      )
+                    ) : null}
+                  </div>
+
+                  {/* Payment Proof Receipt Screenshot */}
+                  {inspectingOrder.paymentProofUrl && (
+                    <div className="bg-white p-3 rounded-lg border border-neutral-200 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={inspectingOrder.paymentProofUrl}
+                          alt="Proof preview"
+                          className="w-14 h-14 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-90"
+                          onClick={() => setPaymentProofModalUrl(inspectingOrder.paymentProofUrl!)}
+                        />
+                        <div>
+                          <p className="font-bold text-neutral-900">Payment Proof Screenshot</p>
+                          <p className="text-[11px] text-neutral-500">
+                            Uploaded {inspectingOrder.paymentSubmittedAt ? new Date(inspectingOrder.paymentSubmittedAt).toLocaleString() : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentProofModalUrl(inspectingOrder.paymentProofUrl!)}
+                        className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Full Screen</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Current Verification Status and Rejection Reason if any */}
+                  <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                    <div className="text-xs">
+                      <span className="font-bold text-neutral-700 mr-2">Payment Verification Status:</span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                          inspectingOrder.paymentStatus === 'verified'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : inspectingOrder.paymentStatus === 'pending_verification'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                            : inspectingOrder.paymentStatus === 'rejected'
+                            ? 'bg-red-100 text-red-800 border border-red-300'
+                            : 'bg-neutral-200 text-neutral-700'
+                        }`}
+                      >
+                        {inspectingOrder.paymentStatus || 'payment_pending'}
+                      </span>
+                      {inspectingOrder.verifiedBy && (
+                        <span className="text-[11px] text-neutral-500 ml-2">
+                          (by {inspectingOrder.verifiedBy} on {inspectingOrder.verifiedAt ? new Date(inspectingOrder.verifiedAt).toLocaleDateString() : ''})
+                        </span>
+                      )}
+                      {inspectingOrder.rejectionReason && (
+                        <p className="text-[11px] text-red-600 mt-1 font-medium">
+                          <strong>Rejection Note:</strong> {inspectingOrder.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* ACTION BUTTONS: VERIFY OR REJECT */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyPayment(inspectingOrder)}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Verify Payment</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenRejectModal(inspectingOrder)}
+                        className="px-3.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Reject Payment</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-neutral-600 pt-1 border-t border-neutral-200">
+                  Customer selected Cash on Delivery. Payment will be collected in cash by courier at time of delivery.
+                </div>
+              )}
+            </div>
+
             {/* Items with Variants */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
@@ -2034,9 +2495,122 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </span>
               </div>
             </div>
+
+            {/* Inspect Order Action Bar */}
+            <div className="pt-3 border-t border-neutral-200 flex items-center justify-between flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleDeleteOrderClick(inspectingOrder)}
+                className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs inline-flex items-center gap-1.5 transition-colors border border-red-200 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <span>Delete Order</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {inspectingOrder.customer.email && (
+                  <a
+                    href={getOrderConfirmationMailto(inspectingOrder)}
+                    className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs inline-flex items-center gap-1.5 transition-colors shadow-xs"
+                    title="Open email composer with pre-filled Order Confirmation"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Email Customer (Confirmation)</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setInspectingOrder(null)}
+                  className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-xs cursor-pointer transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* PAYMENT REJECTION MODAL */}
+      {/* ========================================================= */}
+      {rejectModal.open && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-neutral-950/75 backdrop-blur-xs">
+          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-neutral-200 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-base text-neutral-900">
+                  Reject Advance Payment Proof
+                </h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Order: <strong className="text-neutral-800 font-mono">{rejectModal.orderNumber}</strong>. The customer will be informed of this reason and allowed to re-submit a valid TID and transfer slip.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-neutral-700">
+                Rejection Reason (Visible to Customer)
+              </label>
+              <textarea
+                value={rejectModal.reason}
+                onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
+                rows={3}
+                placeholder="E.g. Transaction ID not found in bank statement, amount is short, or receipt is invalid."
+                className="w-full px-3 py-2 text-xs bg-neutral-50 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={rejectModal.isSubmitting}
+                onClick={() => setRejectModal({ ...rejectModal, open: false })}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-600 hover:bg-neutral-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={rejectModal.isSubmitting || !rejectModal.reason.trim()}
+                onClick={handleConfirmRejectPayment}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {rejectModal.isSubmitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>Confirm Rejection</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* FULL-SIZE PAYMENT PROOF RECEIPT MODAL */}
+      {/* ========================================================= */}
+      {paymentProofModalUrl && (
+        <div
+          onClick={() => setPaymentProofModalUrl(null)}
+          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-neutral-950/85 backdrop-blur-xs cursor-zoom-out"
+        >
+          <div className="relative max-w-2xl max-h-[90vh] bg-neutral-900 rounded-2xl overflow-hidden p-2">
+            <button
+              onClick={() => setPaymentProofModalUrl(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-neutral-950/80 text-white hover:bg-neutral-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={paymentProofModalUrl}
+              alt="Payment verification proof receipt"
+              className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ========================================================= */}
       {/* DELETE CONFIRMATION MODAL */}
       {/* ========================================================= */}
@@ -2049,11 +2623,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               </div>
               <div className="space-y-1">
                 <h3 className="font-extrabold text-base text-neutral-900">
-                  Delete {deleteModal.type === 'banner' ? 'Hero Banner' : deleteModal.type === 'product' ? 'Product' : 'Category'}
+                  Delete {deleteModal.type === 'banner' ? 'Hero Banner' : deleteModal.type === 'product' ? 'Product' : deleteModal.type === 'category' ? 'Category' : 'Order'}
                 </h3>
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  Permanently delete this document from Firestore database
-                  {deleteModal.type === 'banner' && ' and remove it immediately from the customer homepage'}.
+                  {deleteModal.type === 'order'
+                    ? 'Permanently delete this order record from Firestore database and remove any associated payment proof receipts. Customer accounts and lead history will remain intact.'
+                    : `Permanently delete this document from Firestore database${deleteModal.type === 'banner' ? ' and remove it immediately from the customer homepage' : ''}.`}
                 </p>
               </div>
             </div>
@@ -2069,7 +2644,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 />
               ) : (
                 <div className="w-16 h-12 rounded-lg bg-neutral-200 flex items-center justify-center text-neutral-400 shrink-0">
-                  <Layers className="w-5 h-5" />
+                  {deleteModal.type === 'order' ? (
+                    <ShoppingCart className="w-5 h-5 text-neutral-600" />
+                  ) : (
+                    <Layers className="w-5 h-5" />
+                  )}
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -2077,6 +2656,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 <p className="text-[11px] font-mono text-neutral-500 truncate">
                   Firestore Doc ID: <span className="text-neutral-800 font-semibold">{deleteModal.id}</span>
                 </p>
+                {deleteModal.type === 'order' && deleteModal.imageUrl && (
+                  <span className="text-[10px] text-orange-600 font-semibold block mt-0.5">
+                    Attached payment proof receipt will be deleted from storage
+                  </span>
+                )}
               </div>
             </div>
 

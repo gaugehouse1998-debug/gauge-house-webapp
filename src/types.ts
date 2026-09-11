@@ -116,7 +116,16 @@ export interface CustomerInfo {
   customerType?: 'registered' | 'guest';
 }
 
-export type OrderStatus = 'New' | 'Confirmed' | 'Processing' | 'Shipped' | 'Completed' | 'Cancelled';
+export type OrderStatus =
+  | 'New'
+  | 'Confirmed'
+  | 'Processing'
+  | 'Shipped'
+  | 'Completed'
+  | 'Cancelled'
+  | 'payment_pending'
+  | 'payment_issue'
+  | 'processing';
 
 export type PaymentMethod = 'cod' | 'bank_transfer';
 export type PaymentStatus = 'unpaid' | 'payment_pending' | 'pending_verification' | 'verified' | 'rejected';
@@ -153,7 +162,8 @@ export interface Order {
   shipping: number;
   total: number;
   totalAmount?: number; // alias for total
-  status: OrderStatus;
+  status: OrderStatus | string;
+  orderStatus?: OrderStatus;
   // Payment Details & TID Verification
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;

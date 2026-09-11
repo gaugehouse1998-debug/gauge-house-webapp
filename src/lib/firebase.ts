@@ -6,21 +6,9 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Use initializeFirestore with experimentalForceLongPolling to ensure robust connectivity in container/iframe environments
-let firestoreDb: Firestore;
-try {
-  firestoreDb = initializeFirestore(
-    app,
-    {
-      experimentalForceLongPolling: true,
-    },
-    firebaseConfig.firestoreDatabaseId
-  );
-} catch {
-  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-}
-
-export const db = firestoreDb;
+// Initialize Firestore per Firebase skill guidelines:
+// export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -119,17 +107,26 @@ export function cleanFirestoreData<T>(data: T): T {
 // Validate Firestore connection on boot (per Firebase skill guidelines)
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
+    if (typeof window === 'undefined') return true;
     await getDocFromServer(doc(db, 'test', 'connection'));
     return true;
   } catch (error) {
-    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('unavailable'))) {
-      console.warn('Firestore connection is currently offline or reconnecting...');
+    if (
+      error instanceof Error &&
+      (error.message.includes('the client is offline') ||
+        error.message.includes('unavailable') ||
+        error.message.includes('Failed to get document'))
+    ) {
+      // Graceful notice during offline state or initial handshake
       return false;
     }
-    // Any permission error or non-existence is expected for /test/connection
     return true;
   }
 }
 
-// Trigger connection check on boot
-testFirestoreConnection();
+// Trigger connection check gracefully after initial render cycle
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    testFirestoreConnection().catch(() => {});
+  }, 1000);
+}

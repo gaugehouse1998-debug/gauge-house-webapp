@@ -13,10 +13,12 @@ import {
   ExternalLink,
   MessageCircle,
   HelpCircle,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { Order, PaymentAccount } from '../types';
 import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 import { submitOrderPaymentProof } from '../services/firestoreService';
 import { uploadImageFile } from '../lib/storageService';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -33,6 +35,7 @@ export const AdvancePaymentVerificationBox: React.FC<AdvancePaymentVerificationB
   onPaymentUpdated,
   compact = false,
 }) => {
+  const { user } = useAuth();
   const { activePaymentAccounts, defaultPaymentAccount, formatPrice, settings } = useStore();
   const [currentOrder, setCurrentOrder] = useState<Order>(initialOrder);
 
@@ -99,6 +102,10 @@ export const AdvancePaymentVerificationBox: React.FC<AdvancePaymentVerificationB
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setStatusMessage({ type: 'error', text: 'Please log in to submit your advance payment verification.' });
+      return;
+    }
     if (!tid.trim()) {
       setStatusMessage({ type: 'error', text: 'Please enter your Transaction ID (TID) / Reference Number.' });
       return;
@@ -316,7 +323,17 @@ export const AdvancePaymentVerificationBox: React.FC<AdvancePaymentVerificationB
         )}
 
         {/* BANK ACCOUNT DETAILS SECTION */}
-        {activeBank ? (
+        {!user ? (
+          <div className="bg-amber-50 rounded-xl p-5 border border-amber-200 text-xs text-amber-900 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
+              <Lock className="w-4 h-4 text-amber-700" />
+              <span>Login Required to View Bank Details</span>
+            </div>
+            <p className="leading-relaxed text-amber-800">
+              For security, active Gauge House bank account details and payment verification are strictly restricted to registered, logged-in customers.
+            </p>
+          </div>
+        ) : activeBank ? (
           <div className="bg-neutral-50 rounded-xl p-4 sm:p-5 border border-neutral-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-neutral-200">
               <div className="flex items-center gap-2">
@@ -444,7 +461,8 @@ export const AdvancePaymentVerificationBox: React.FC<AdvancePaymentVerificationB
         )}
 
         {/* SUBMISSION FORM (Shown if unpaid, or rejected, or user clicked edit) */}
-        {(paymentStatus === 'unpaid' ||
+        {user &&
+          (paymentStatus === 'unpaid' ||
           paymentStatus === 'payment_pending' ||
           paymentStatus === 'rejected' ||
           showEditForm) && (

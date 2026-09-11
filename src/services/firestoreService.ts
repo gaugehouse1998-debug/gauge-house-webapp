@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db, handleFirestoreError, cleanFirestoreData, OperationType } from '../lib/firebase';
+import { deleteImageFromStorage } from '../lib/storageService';
 import {
   Product,
   Category,
@@ -275,7 +276,9 @@ export function subscribeToUserOrders(userId: string, onData: (orders: Order[]) 
   );
 }
 
-export async function createOrderInFirestore(orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt' | 'status'>): Promise<Order> {
+export async function createOrderInFirestore(
+  orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'> & { status?: OrderStatus }
+): Promise<Order> {
   const path = 'orders';
   try {
     // Generate human-readable order number: GH-2026-XXXXXX
@@ -294,6 +297,9 @@ export async function createOrderInFirestore(orderData: Omit<Order, 'id' | 'orde
     if (orderData.transactionId && orderData.transactionId.trim()) {
       paymentStatus = 'pending_verification';
     }
+
+    const initialOrderStatus: OrderStatus =
+      (orderData.orderStatus as OrderStatus) || (paymentMethod === 'bank_transfer' ? 'payment_pending' : 'New');
 
     const order: Order = cleanFirestoreData({
       ...orderData,
@@ -317,7 +323,8 @@ export async function createOrderInFirestore(orderData: Omit<Order, 'id' | 'orde
       paymentNotes: orderData.paymentNotes?.trim() || '',
       selectedBankAccountId: orderData.selectedBankAccountId || '',
       selectedBankName: orderData.selectedBankName || '',
-      status: 'New',
+      orderStatus: initialOrderStatus,
+      status: initialOrderStatus,
       createdAt: now,
       updatedAt: now,
     });
@@ -436,6 +443,7 @@ export async function verifyOrderPaymentInFirestore(
     const now = new Date().toISOString();
     const updatePayload = cleanFirestoreData({
       paymentStatus: 'verified',
+      orderStatus: 'processing',
       status: 'Processing', // Automatically promote order to Processing upon payment verification
       verifiedAt: now,
       verifiedBy: adminEmail,
@@ -459,6 +467,8 @@ export async function rejectOrderPaymentInFirestore(
     const now = new Date().toISOString();
     const updatePayload = cleanFirestoreData({
       paymentStatus: 'rejected',
+      orderStatus: 'payment_issue',
+      status: 'payment_issue',
       rejectionReason: rejectionReason.trim(),
       rejectedAt: now,
       verifiedBy: adminEmail,
@@ -467,6 +477,28 @@ export async function rejectOrderPaymentInFirestore(
     await updateDoc(doc(db, 'orders', orderId), updatePayload);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function deleteOrderInFirestore(
+  orderId: string,
+  paymentProofUrl?: string
+): Promise<void> {
+  const path = `orders/${orderId}`;
+  try {
+    // 1. Permanently delete the order document from Firestore
+    await deleteDoc(doc(db, 'orders', orderId));
+
+    // 2. Clean up payment proof image from Storage or uploaded_media if attached
+    if (paymentProofUrl && paymentProofUrl.trim()) {
+      try {
+        await deleteImageFromStorage(paymentProofUrl);
+      } catch (storageErr) {
+        console.warn('Payment proof storage cleanup note during order deletion:', storageErr);
+      }
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
