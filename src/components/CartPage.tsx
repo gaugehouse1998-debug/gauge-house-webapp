@@ -97,8 +97,12 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                           SKU: <span className="font-semibold text-neutral-700">{item.sku}</span>
                         </div>
 
-                        <div className="text-xs text-neutral-600 font-medium sm:hidden pt-1">
-                          Unit: {formatPrice(item.unitPrice)}
+                        <div className="text-xs text-neutral-600 font-medium sm:hidden pt-1 flex items-center gap-1.5 flex-wrap">
+                          <span>Unit:</span>
+                          {item.hasDiscount && item.regularPrice && (
+                            <span className="line-through text-neutral-400">{formatPrice(item.regularPrice)}</span>
+                          )}
+                          <span className="font-bold text-neutral-900">{formatPrice(item.unitPrice)}</span>
                         </div>
                       </div>
                     </div>
@@ -138,13 +142,18 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                       </div>
 
                       {/* Subtotal */}
-                      <div className="text-right min-w-24">
+                      <div className="text-right min-w-28">
                         <span className="text-sm sm:text-base font-extrabold text-neutral-900 block">
                           {formatPrice(item.subtotal)}
                         </span>
-                        <span className="text-[11px] text-neutral-400 hidden sm:block">
-                          {item.quantity} × {formatPrice(item.unitPrice)}
-                        </span>
+                        <div className="text-[11px] text-neutral-400 hidden sm:flex flex-col items-end">
+                          {item.hasDiscount && item.regularPrice && (
+                            <span className="line-through text-neutral-400">{formatPrice(item.regularPrice)}</span>
+                          )}
+                          <span>
+                            {item.quantity} × <strong className="text-neutral-700">{formatPrice(item.unitPrice)}</strong>
+                          </span>
+                        </div>
                       </div>
 
                       {/* Remove */}

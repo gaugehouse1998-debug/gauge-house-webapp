@@ -79,7 +79,10 @@ export interface CartItem {
     id?: string;
     attributes: Record<string, string>;
   };
-  unitPrice: number;
+  unitPrice: number; // Effective selling price (Discount Price when discount exists)
+  regularPrice?: number; // Original/Regular price before discount
+  discountPrice?: number; // Discount price if applicable
+  hasDiscount?: boolean;
   quantity: number;
   subtotal: number;
   maxStock: number;

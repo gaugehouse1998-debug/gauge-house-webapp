@@ -54,8 +54,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
     customerType: user ? 'registered' : 'guest',
   });
 
-  // Payment Selection States
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  // Payment Selection States (Advance Bank Transfer only - COD removed)
+  const paymentMethod: PaymentMethod = 'bank_transfer';
   const [selectedBankId, setSelectedBankId] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -547,97 +547,36 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                   <div className="sm:col-span-2 pt-4 border-t border-neutral-200 space-y-4">
                     <div>
                       <h3 className="text-sm font-extrabold text-neutral-900 uppercase tracking-wider">
-                        Select Payment Method
+                        Payment Method
                       </h3>
                       <p className="text-xs text-neutral-500">
-                        Choose how you would like to settle your order amount.
+                        Gauge House operates strictly via Advance Bank Transfer for verified industrial dispatch.
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Option 1: COD */}
-                      <label
-                        className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                          paymentMethod === 'cod'
-                            ? 'border-orange-500 bg-orange-50/40 ring-2 ring-orange-200'
-                            : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                paymentMethod === 'cod'
-                                  ? 'bg-orange-600 text-white'
-                                  : 'bg-neutral-100 text-neutral-600'
-                              }`}
-                            >
-                              <Banknote className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <span className="font-extrabold text-xs text-neutral-900 block">
-                                Cash on Delivery (COD)
-                              </span>
-                              <span className="text-[11px] text-neutral-500">
-                                Pay cash at doorstep
-                              </span>
-                            </div>
+                    {/* Advance Bank Transfer Banner */}
+                    <div className="relative p-4 rounded-xl border-2 border-orange-500 bg-orange-50/40 ring-2 ring-orange-200 flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-orange-600 text-white shadow-xs">
+                            <Building2 className="w-5 h-5" />
                           </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            value="cod"
-                            checked={paymentMethod === 'cod'}
-                            onChange={() => setPaymentMethod('cod')}
-                            className="w-4 h-4 text-orange-600 focus:ring-orange-500 mt-1 cursor-pointer"
-                          />
-                        </div>
-                        <p className="text-[11px] text-neutral-500 mt-3 pt-2 border-t border-neutral-100">
-                          Pay upon receipt to courier. Bank details are not required.
-                        </p>
-                      </label>
-
-                      {/* Option 2: Advance Bank Payment */}
-                      <label
-                        className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                          paymentMethod === 'bank_transfer'
-                            ? 'border-orange-500 bg-orange-50/40 ring-2 ring-orange-200'
-                            : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                paymentMethod === 'bank_transfer'
-                                  ? 'bg-orange-600 text-white'
-                                  : 'bg-neutral-100 text-neutral-600'
-                              }`}
-                            >
-                              <Building2 className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <span className="font-extrabold text-xs text-neutral-900 block">
-                                Advance Bank Transfer
-                              </span>
-                              <span className="text-[11px] text-orange-700 font-semibold">
-                                1Link / Raast / ATM
-                              </span>
-                            </div>
+                          <div>
+                            <span className="font-extrabold text-sm text-neutral-900 block">
+                              Advance Bank Transfer (Official Payment Method)
+                            </span>
+                            <span className="text-[11px] text-orange-700 font-semibold">
+                              1Link / Raast Direct / Online Banking / ATM Transfer
+                            </span>
                           </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            value="bank_transfer"
-                            checked={paymentMethod === 'bank_transfer'}
-                            onChange={() => setPaymentMethod('bank_transfer')}
-                            className="w-4 h-4 text-orange-600 focus:ring-orange-500 mt-1 cursor-pointer"
-                          />
                         </div>
-                        <p className="text-[11px] text-neutral-500 mt-3 pt-2 border-t border-neutral-100">
-                          Direct online bank transfer with priority verification &amp; fast dispatch.
-                        </p>
-                      </label>
+                        <span className="px-2 py-0.5 rounded-md bg-orange-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                          Active
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-600 mt-2.5 pt-2 border-t border-orange-200/60 leading-relaxed">
+                        Direct online bank transfer with priority verification &amp; fast dispatch. Please transfer the total order amount to the official Gauge House bank account details shown below.
+                      </p>
                     </div>
 
                     {/* DYNAMIC BANK DETAILS ACCORDION (Visible ONLY if Advance Bank Payment is selected and user is logged in) */}
@@ -838,9 +777,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                               .join(' | ')}
                           </p>
                         )}
-                        <p className="text-[11px] text-neutral-400">
-                          Qty: <strong className="text-neutral-700">{item.quantity}</strong> × {formatPrice(item.unitPrice)}
-                        </p>
+                        <div className="text-[11px] text-neutral-400">
+                          {item.hasDiscount && item.regularPrice && (
+                            <span className="line-through text-neutral-400 mr-1.5">{formatPrice(item.regularPrice)}</span>
+                          )}
+                          <span>
+                            Qty: <strong className="text-neutral-700">{item.quantity}</strong> × <strong className="text-neutral-800">{formatPrice(item.unitPrice)}</strong>
+                          </span>
+                        </div>
                       </div>
                       <span className="font-bold text-neutral-900 shrink-0">
                         {formatPrice(item.subtotal)}
@@ -866,7 +810,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                   <div className="flex justify-between text-neutral-600">
                     <span>Payment Method</span>
                     <span className="font-bold text-orange-600">
-                      {paymentMethod === 'bank_transfer' ? 'Advance Bank Transfer' : 'Cash on Delivery'}
+                      Advance Bank Transfer
                     </span>
                   </div>
 
@@ -901,11 +845,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>
-                        {paymentMethod === 'bank_transfer'
-                          ? 'Place Order with Bank Transfer'
-                          : 'Confirm & Place COD Order'}
-                      </span>
+                      <span>Place Order with Bank Transfer</span>
                     </>
                   )}
                 </button>

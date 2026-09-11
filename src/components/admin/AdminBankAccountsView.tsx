@@ -227,7 +227,7 @@ export const AdminBankAccountsView: React.FC<AdminBankAccountsViewProps> = ({
         <div className="space-y-1">
           <p className="font-bold">Security &amp; Visibility Invariant</p>
           <p className="text-blue-800 leading-relaxed">
-            Only accounts marked as <span className="font-semibold text-blue-900">Active</span> will be shown to customers choosing Advance Bank Payment. Bank account details are dynamically hidden for Cash on Delivery (COD) orders.
+            Only accounts marked as <span className="font-semibold text-blue-900">Active</span> will be shown to customers. Gauge House operates strictly via Advance Bank Transfer.
           </p>
         </div>
       </div>

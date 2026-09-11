@@ -46,8 +46,7 @@ export function getOrderConfirmationMailto(order: Order): string {
   const customerName = order.customer?.fullName || order.customerName || 'Valued Customer';
   const orderNumber = order.orderNumber || order.id;
   const statusDisplay = (order.orderStatus || order.status || 'New').toUpperCase();
-  const paymentMethodDisplay =
-    order.paymentMethod === 'bank_transfer' ? 'Advance Bank Transfer' : 'Cash on Delivery (COD)';
+  const paymentMethodDisplay = 'Advance Bank Transfer';
   const paymentStatusDisplay = (order.paymentStatus || 'unpaid').toUpperCase();
   const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Recent';
 

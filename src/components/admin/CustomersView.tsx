@@ -21,7 +21,8 @@ import {
   MessageCircle,
   Package,
   FileSpreadsheet,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2
 } from 'lucide-react';
 import { CustomerUser, Order } from '../../types';
 import { getCustomerWelcomeMailto, getOrderConfirmationMailto } from '../../utils/emailComposer';
@@ -33,6 +34,7 @@ interface CustomersViewProps {
   formatPrice: (amount: number) => string;
   onSelectOrder?: (order: Order) => void;
   onUpdateCustomerStatus?: (uid: string, status: 'active' | 'suspended') => Promise<void>;
+  onDeleteCustomer?: (customer: CustomerUser) => void;
   onShowNotification?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
@@ -43,6 +45,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   formatPrice,
   onSelectOrder,
   onUpdateCustomerStatus,
+  onDeleteCustomer,
   onShowNotification
 }) => {
   // Search & Filter state
@@ -515,6 +518,20 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                             <Eye className="w-3 h-3" />
                             <span>Details</span>
                           </button>
+                          {onDeleteCustomer && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteCustomer(c);
+                              }}
+                              className="px-2.5 py-1 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 font-bold rounded-lg text-[11px] transition-colors inline-flex items-center gap-1 cursor-pointer border border-red-200 hover:border-red-600"
+                              title="Permanently Delete Customer Account"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -870,11 +887,25 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="pt-4 border-t border-neutral-100 flex justify-end">
+            <div className="pt-4 border-t border-neutral-100 flex items-center justify-between gap-3">
+              {onDeleteCustomer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cust = selectedCustomer;
+                    setSelectedCustomer(null);
+                    onDeleteCustomer(cust);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-600 hover:text-white text-red-700 font-bold text-xs border border-red-200 hover:border-red-600 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Customer Account</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedCustomer(null)}
-                className="px-5 py-2 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-all cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-all cursor-pointer ml-auto"
               >
                 Close Customer Details
               </button>

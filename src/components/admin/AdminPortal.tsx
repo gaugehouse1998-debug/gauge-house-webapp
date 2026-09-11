@@ -47,6 +47,7 @@ import {
   deleteBannerInFirestore,
   updateOrderStatusInFirestore,
   deleteOrderInFirestore,
+  deleteCustomerPermanently,
   verifyOrderPaymentInFirestore,
   rejectOrderPaymentInFirestore,
   saveStoreSettingsInFirestore,
@@ -174,7 +175,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   // Delete Confirmation Modal State
   const [deleteModal, setDeleteModal] = useState<{
     open: boolean;
-    type: 'banner' | 'product' | 'category' | 'order';
+    type: 'banner' | 'product' | 'category' | 'order' | 'customer';
     id: string;
     title: string;
     imageUrl?: string;
@@ -578,6 +579,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
         }
 
         showNotification('success', `Order "${deleteModal.title}" permanently deleted from Firestore.`);
+      } else if (deleteModal.type === 'customer') {
+        const customer = customers.find((c) => c.uid === deleteModal.id);
+        const customerEmail = customer?.email;
+
+        // Permanently delete user document, personal contact data, customer orders, and payment proofs
+        const res = await deleteCustomerPermanently(deleteModal.id, customerEmail);
+
+        // Remove customer from state immediately
+        setCustomers((prev) => prev.filter((c) => c.uid !== deleteModal.id));
+
+        // Also purge any deleted customer orders from local state
+        if (res && res.deletedOrdersCount > 0) {
+          setOrders((prev) =>
+            prev.filter((o) => {
+              const ordUid = o.customerUid || o.customer?.userId;
+              const ordEmail = (o.customerEmail || o.customer?.email || '').toLowerCase().trim();
+              return (
+                ordUid !== deleteModal.id &&
+                (!customerEmail || ordEmail !== customerEmail.toLowerCase().trim())
+              );
+            })
+          );
+        }
+
+        showNotification(
+          'success',
+          `Customer account "${deleteModal.title}" and associated personal records permanently deleted from Firestore.`
+        );
       }
 
       setDeleteModal({
@@ -606,6 +635,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
       id: order.id,
       title: order.orderNumber ? `Order #${order.orderNumber}` : `Order ${order.id}`,
       imageUrl: order.paymentProofUrl || undefined,
+      isDeleting: false,
+      error: null,
+    });
+  };
+
+  const handleDeleteCustomerClick = (customer: CustomerUser) => {
+    setDeleteModal({
+      open: true,
+      type: 'customer',
+      id: customer.uid,
+      title: customer.name || customer.email || 'Customer Account',
+      imageUrl: undefined,
       isDeleting: false,
       error: null,
     });
@@ -1351,8 +1392,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                                 )}
                               </div>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
-                                Cash on Delivery
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                Bank Transfer
                               </span>
                             )}
                           </td>
@@ -1443,6 +1484,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               setActiveTab('orders');
             }}
             onUpdateCustomerStatus={handleUpdateCustomerStatus}
+            onDeleteCustomer={handleDeleteCustomerClick}
             onShowNotification={showNotification}
           />
         )}
@@ -1461,6 +1503,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               setActiveTab('orders');
             }}
             onUpdateCustomerStatus={handleUpdateCustomerStatus}
+            onDeleteCustomer={handleDeleteCustomerClick}
             onShowNotification={showNotification}
           />
         )}
@@ -2264,8 +2307,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                       Advance Bank Transfer
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-neutral-200 text-neutral-800">
-                      Cash on Delivery (COD)
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                      Advance Bank Transfer
                     </span>
                   )}
                 </div>
@@ -2435,7 +2478,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </div>
               ) : (
                 <div className="text-xs text-neutral-600 pt-1 border-t border-neutral-200">
-                  Customer selected Cash on Delivery. Payment will be collected in cash by courier at time of delivery.
+                  Advance Bank Transfer order awaiting customer payment slip or verification.
                 </div>
               )}
             </div>
@@ -2623,10 +2666,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               </div>
               <div className="space-y-1">
                 <h3 className="font-extrabold text-base text-neutral-900">
-                  Delete {deleteModal.type === 'banner' ? 'Hero Banner' : deleteModal.type === 'product' ? 'Product' : deleteModal.type === 'category' ? 'Category' : 'Order'}
+                  Delete {deleteModal.type === 'banner' ? 'Hero Banner' : deleteModal.type === 'product' ? 'Product' : deleteModal.type === 'category' ? 'Category' : deleteModal.type === 'order' ? 'Order' : 'Customer Account'}
                 </h3>
                 <p className="text-xs text-neutral-500 leading-relaxed">
-                  {deleteModal.type === 'order'
+                  {deleteModal.type === 'customer'
+                    ? `Permanently delete this customer account profile (users/${deleteModal.id}), personal contact information, customer-related records, and all attached payment proof receipts. This action is irreversible.`
+                    : deleteModal.type === 'order'
                     ? 'Permanently delete this order record from Firestore database and remove any associated payment proof receipts. Customer accounts and lead history will remain intact.'
                     : `Permanently delete this document from Firestore database${deleteModal.type === 'banner' ? ' and remove it immediately from the customer homepage' : ''}.`}
                 </p>
@@ -2644,7 +2689,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 />
               ) : (
                 <div className="w-16 h-12 rounded-lg bg-neutral-200 flex items-center justify-center text-neutral-400 shrink-0">
-                  {deleteModal.type === 'order' ? (
+                  {deleteModal.type === 'customer' ? (
+                    <Users className="w-5 h-5 text-red-600" />
+                  ) : deleteModal.type === 'order' ? (
                     <ShoppingCart className="w-5 h-5 text-neutral-600" />
                   ) : (
                     <Layers className="w-5 h-5" />
@@ -2659,6 +2706,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 {deleteModal.type === 'order' && deleteModal.imageUrl && (
                   <span className="text-[10px] text-orange-600 font-semibold block mt-0.5">
                     Attached payment proof receipt will be deleted from storage
+                  </span>
+                )}
+                {deleteModal.type === 'customer' && (
+                  <span className="text-[10px] text-red-600 font-semibold block mt-0.5">
+                    Customer profile, personal data, and related payment slips will be permanently purged
                   </span>
                 )}
               </div>

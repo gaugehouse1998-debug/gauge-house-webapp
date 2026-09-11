@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Product, ProductVariant } from '../types';
+import { getItemPriceBreakdown, calculateLineSubtotal } from '../utils/pricing';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
 import { ProductCard } from './ProductCard';
@@ -105,13 +106,17 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
   // Calculate pricing & stock for a staged line
   const getLineDetails = (line: StagedVariantLine) => {
     const match = findMatchingVariant(line.attributes);
-    const unitPrice = match?.price ?? (product.salePrice && product.salePrice > 0 ? product.salePrice : product.price);
+    const priceInfo = getItemPriceBreakdown(product, match);
+    const unitPrice = priceInfo.sellingPrice; // Discount price if discount exists, else regular price
+    const regularPrice = priceInfo.regularPrice;
+    const discountPrice = priceInfo.discountPrice;
+    const hasDiscount = priceInfo.hasDiscount;
     const sku = match?.sku || product.sku || 'GH-ITEM';
     const stock = match?.stock ?? product.stock ?? 999;
     const isAvailable = (match ? match.enabled !== false : true) && stock > 0;
-    const subtotal = unitPrice * line.quantity;
+    const subtotal = calculateLineSubtotal(unitPrice, line.quantity);
 
-    return { match, unitPrice, sku, stock, isAvailable, subtotal };
+    return { match, unitPrice, regularPrice, discountPrice, hasDiscount, sku, stock, isAvailable, subtotal };
   };
 
   // Add another staged variant row
@@ -515,7 +520,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
 
                                 <div className="text-right">
                                   <span className="text-neutral-500 mr-2">
-                                    {line.quantity} × {formatPrice(details.unitPrice)}
+                                    {details.hasDiscount && details.regularPrice && (
+                                      <span className="line-through text-neutral-400 mr-1.5 text-xs">
+                                        {formatPrice(details.regularPrice)}
+                                      </span>
+                                    )}
+                                    {line.quantity} × <strong className="text-neutral-700">{formatPrice(details.unitPrice)}</strong>
                                   </span>
                                   <span className="font-extrabold text-neutral-900 text-sm">
                                     = {formatPrice(details.subtotal)}
@@ -597,7 +607,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
                         <div className="text-sm">
                           <span className="text-neutral-500 block">Subtotal</span>
                           <span className="font-extrabold text-neutral-900 text-lg">
-                            {formatPrice((product.salePrice || product.price) * singleQuantity)}
+                            {formatPrice(calculateLineSubtotal(getItemPriceBreakdown(product).sellingPrice, singleQuantity))}
                           </span>
                         </div>
                       </div>

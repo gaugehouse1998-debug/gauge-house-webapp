@@ -42,7 +42,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
       `*Phone:* ${order.customer.phone}`,
       `*City:* ${order.customer.city}`,
       order.customer.companyName ? `*Company:* ${order.customer.companyName}` : '',
-      `*Payment Method:* ${isBankTransfer ? 'Advance Bank Transfer' : 'Cash on Delivery (COD)'}`,
+      `*Payment Method:* Advance Bank Transfer (1Link / Raast)`,
       order.transactionId ? `*Transaction ID (TID):* ${order.transactionId}` : '',
       order.paymentStatus ? `*Payment Status:* ${order.paymentStatus}` : '',
       `\n*Items Ordered:*`,
@@ -121,28 +121,9 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
         </div>
 
         {/* Advance Payment & Bank Transfer Verification Box */}
-        {isBankTransfer && (
-          <div className="print:hidden">
-            <AdvancePaymentVerificationBox order={order} />
-          </div>
-        )}
-
-        {/* COD Notice Box */}
-        {!isBankTransfer && (
-          <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-5 flex items-start gap-3.5 print:hidden">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-              <Banknote className="w-5 h-5" />
-            </div>
-            <div className="space-y-1 text-xs text-amber-950">
-              <h4 className="font-extrabold text-sm text-amber-950">
-                Cash on Delivery (COD) Order
-              </h4>
-              <p className="leading-relaxed text-amber-900">
-                Please keep the exact amount of <strong className="font-bold">{formatPrice(order.total)}</strong> ready in cash. Our courier representative will collect payment at your doorstep upon handing over the parcel.
-              </p>
-            </div>
-          </div>
-        )}
+        <div className="print:hidden">
+          <AdvancePaymentVerificationBox order={order} />
+        </div>
 
         {/* Itemized Order Details & Invoice View */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-xs space-y-8 print:shadow-none print:border-neutral-300">
@@ -185,7 +166,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
               <p>
                 <strong>Payment Mode:</strong>{' '}
                 <span className="font-semibold text-neutral-900">
-                  {isBankTransfer ? 'Advance Bank Transfer (1Link / Raast)' : 'Cash on Delivery (COD)'}
+                  Advance Bank Transfer (1Link / Raast)
                 </span>
               </p>
               {order.transactionId && (
@@ -210,7 +191,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                     <th className="py-3 px-4">Item & Specifications</th>
                     <th className="py-3 px-4">SKU</th>
                     <th className="py-3 px-4 text-center">Qty</th>
-                    <th className="py-3 px-4 text-right">Price</th>
+                    <th className="py-3 px-4 text-right">Unit Price</th>
                     <th className="py-3 px-4 text-right">Subtotal</th>
                   </tr>
                 </thead>
@@ -229,7 +210,12 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                       </td>
                       <td className="py-3 px-4 font-mono text-neutral-600">{item.sku}</td>
                       <td className="py-3 px-4 text-center font-bold text-neutral-900">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right text-neutral-700">{formatPrice(item.unitPrice)}</td>
+                      <td className="py-3 px-4 text-right text-neutral-700">
+                        {item.hasDiscount && item.regularPrice && (
+                          <span className="line-through text-neutral-400 block text-[10px]">{formatPrice(item.regularPrice)}</span>
+                        )}
+                        <span className="font-semibold">{formatPrice(item.unitPrice)}</span>
+                      </td>
                       <td className="py-3 px-4 text-right font-bold text-neutral-900">{formatPrice(item.subtotal)}</td>
                     </tr>
                   ))}

@@ -12,7 +12,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { db, handleFirestoreError, cleanFirestoreData, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, cleanFirestoreData, OperationType } from '../lib/firebase';
 import { deleteImageFromStorage } from '../lib/storageService';
 import {
   Product,
@@ -292,14 +292,14 @@ export async function createOrderInFirestore(
     const isRegistered = Boolean(customerUid);
     const customerType = isRegistered ? 'registered' : 'guest';
 
-    const paymentMethod: PaymentMethod = orderData.paymentMethod || 'cod';
-    let paymentStatus: PaymentStatus = orderData.paymentStatus || (paymentMethod === 'bank_transfer' ? 'payment_pending' : 'unpaid');
+    const paymentMethod: PaymentMethod = 'bank_transfer';
+    let paymentStatus: PaymentStatus = orderData.paymentStatus || 'payment_pending';
     if (orderData.transactionId && orderData.transactionId.trim()) {
       paymentStatus = 'pending_verification';
     }
 
     const initialOrderStatus: OrderStatus =
-      (orderData.orderStatus as OrderStatus) || (paymentMethod === 'bank_transfer' ? 'payment_pending' : 'New');
+      (orderData.orderStatus as OrderStatus) || 'payment_pending';
 
     const order: Order = cleanFirestoreData({
       ...orderData,
@@ -732,14 +732,93 @@ export async function syncCustomerOnAuth(
   }
 }
 
-export async function deleteCustomerAccountInFirestore(uid: string): Promise<void> {
-  const path = `users/${uid}`;
+export async function deleteCustomerPermanently(
+  customerUid: string,
+  customerEmail?: string
+): Promise<{ deletedOrdersCount: number; deletedProofsCount: number }> {
+  const path = `users/${customerUid}`;
   try {
-    // Delete user profile document from Firestore
-    await deleteDoc(doc(db, 'users', uid));
+    let deletedOrdersCount = 0;
+    let deletedProofsCount = 0;
+
+    // 1. Delete customer profile document from Firestore (`users/{uid}`)
+    await deleteDoc(doc(db, 'users', customerUid));
+
+    // 2. Find and delete all related personal-data records & payment proof files
+    const cleanEmail = customerEmail ? customerEmail.toLowerCase().trim() : '';
+    const ordersCol = collection(db, 'orders');
+    const orderSnaps = await getDocs(ordersCol);
+
+    const relatedOrdersToDelete: { id: string; paymentProofUrl?: string }[] = [];
+    orderSnaps.forEach((docSnap) => {
+      const data = docSnap.data();
+      const orderCustomerUid = data.customerUid || data.customer?.userId;
+      const orderCustomerEmail = (data.customerEmail || data.customer?.email || '').toLowerCase().trim();
+
+      if (
+        orderCustomerUid === customerUid ||
+        (cleanEmail && orderCustomerEmail === cleanEmail)
+      ) {
+        relatedOrdersToDelete.push({
+          id: docSnap.id,
+          paymentProofUrl: data.paymentProofUrl,
+        });
+      }
+    });
+
+    for (const ord of relatedOrdersToDelete) {
+      if (ord.paymentProofUrl) {
+        try {
+          await deleteImageFromStorage(ord.paymentProofUrl);
+          deletedProofsCount++;
+        } catch (storageErr) {
+          console.warn('Storage cleanup notice for customer order:', storageErr);
+        }
+      }
+      try {
+        await deleteDoc(doc(db, 'orders', ord.id));
+        deletedOrdersCount++;
+      } catch (orderErr) {
+        console.warn('Order document removal notice:', orderErr);
+      }
+    }
+
+    // 3. Clean up uploaded media metadata associated with this customer
+    try {
+      const mediaCol = collection(db, 'uploaded_media');
+      const mediaSnaps = await getDocs(mediaCol);
+      for (const mSnap of mediaSnaps.docs) {
+        const mData = mSnap.data();
+        if (mData.uploadedBy === customerUid || (cleanEmail && mData.userEmail === cleanEmail)) {
+          if (mData.url) {
+            try {
+              await deleteImageFromStorage(mData.url);
+            } catch (_) {}
+          }
+          try {
+            await deleteDoc(doc(db, 'uploaded_media', mSnap.id));
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    // 4. Delete client Auth user if current user is the target customer
+    if (auth.currentUser && auth.currentUser.uid === customerUid) {
+      try {
+        await auth.currentUser.delete();
+      } catch (authErr) {
+        console.warn('Auth user delete notice:', authErr);
+      }
+    }
+
+    return { deletedOrdersCount, deletedProofsCount };
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
+}
+
+export async function deleteCustomerAccountInFirestore(uid: string): Promise<void> {
+  await deleteCustomerPermanently(uid);
 }
 
 // ---------------- SETTINGS ----------------
