@@ -7,16 +7,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Strict admin verification: Email must match authorized admin, and if admin_users/{uid} exists, it must have role == 'admin' and active == true
+    // Strict admin verification: Email must match authorized admin, and if admins/{uid} or admin_users/{uid} exists, role must be 'admin'
     function isAuthorizedAdmin() {
       return isSignedIn() &&
         request.auth.token.email == 'gaugehouse1998@gmail.com' &&
         (
+          !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'
+        ) &&
+        (
           !exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
-          (
-            get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'admin' &&
-            get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.active == true
-          )
+          get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'admin'
         );
     }
 
@@ -82,10 +83,14 @@ service cloud.firestore {
 
     // Customers database & leads: private to user and authorized admin
     match /users/{userId} {
-      // Authenticated customer can read and update their own document
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-      // Authorized admin can read, write, and manage all customer documents
-      allow read, write: if isAuthorizedAdmin();
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAuthorizedAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+        (!('role' in request.resource.data) || request.resource.data.role == 'customer') &&
+        request.auth.token.email != 'gaugehouse1998@gmail.com';
+      allow update: if (isSignedIn() && request.auth.uid == userId &&
+        (!('role' in request.resource.data) || request.resource.data.role == 'customer')) ||
+        isAuthorizedAdmin();
+      allow delete: if (isSignedIn() && request.auth.uid == userId) || isAuthorizedAdmin();
     }
 
     // Settings
@@ -100,9 +105,17 @@ service cloud.firestore {
       allow write: if isAuthorizedAdmin() || (isSignedIn() && request.resource.data.folder == 'payment_proofs');
     }
 
-    // Admin users list: strictly restricted
+    // Admin users list: strictly restricted to authorized admin
     match /admin_users/{uid} {
-      // Allow user to check their own record if their email is the authorized admin email
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAuthorizedAdmin());
+      allow write: if isSignedIn() && (
+        (request.auth.uid == uid && request.auth.token.email == 'gaugehouse1998@gmail.com') ||
+        isAuthorizedAdmin()
+      );
+    }
+
+    // Admins collection: strictly restricted to authorized admin
+    match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAuthorizedAdmin());
       allow write: if isSignedIn() && (
         (request.auth.uid == uid && request.auth.token.email == 'gaugehouse1998@gmail.com') ||

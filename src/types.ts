@@ -92,6 +92,7 @@ export interface CustomerUser {
   uid: string;
   name: string;
   email: string;
+  role?: 'customer';
   phone: string;
   address: string;
   city: string;

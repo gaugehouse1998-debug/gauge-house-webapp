@@ -175,6 +175,7 @@
         "phone": { "type": "string", "maxLength": 50 },
         "address": { "type": "string", "maxLength": 500 },
         "city": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["customer"] },
         "createdAt": { "type": "string" },
         "lastLoginAt": { "type": "string" },
         "accountStatus": { "type": "string", "enum": ["active", "suspended"] },
@@ -206,6 +207,10 @@
       "description": "Homepage promotional banners"
     },
     "/admin_users/{uid}": {
+      "schema": "AdminUser",
+      "description": "Admin authorization records"
+    },
+    "/admins/{uid}": {
       "schema": "AdminUser",
       "description": "Admin authorization records"
     },
