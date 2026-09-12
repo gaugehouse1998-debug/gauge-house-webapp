@@ -63,12 +63,9 @@ function MainApp() {
     // Strip query params for route matching
     const baseRoute = route.split('?')[0];
 
-    // Ensure leading slash if not empty
-    if (!baseRoute.startsWith('/')) {
-      return '/' + baseRoute;
-    }
-
-    return baseRoute || '/';
+    // Ensure single leading slash and clean path
+    const finalRoute = '/' + baseRoute.replace(/^\/+/, '');
+    return finalRoute || '/';
   };
 
   // Navigation route state

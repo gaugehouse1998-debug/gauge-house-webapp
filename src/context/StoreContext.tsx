@@ -7,7 +7,29 @@ import {
   subscribeToSettings,
   subscribeToPaymentAccounts
 } from '../services/firestoreService';
-import { DEFAULT_STORE_SETTINGS } from '../data/defaults';
+import { DEFAULT_STORE_SETTINGS, OFFICIAL_CATEGORIES, DEFAULT_BANNERS, SAMPLE_PRODUCTS } from '../data/defaults';
+
+const INITIAL_CATEGORIES: Category[] = OFFICIAL_CATEGORIES.map((c, idx) => ({
+  ...c,
+  id: `cat-default-${idx + 1}`,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}));
+
+const INITIAL_BANNERS: Banner[] = DEFAULT_BANNERS.map((b, idx) => ({
+  ...b,
+  id: `banner-default-${idx + 1}`,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}));
+
+const INITIAL_PRODUCTS: Product[] = (SAMPLE_PRODUCTS as any[]).map((p, idx) => ({
+  ...p,
+  id: `prod-default-${idx + 1}`,
+  categoryId: p.categoryId || 'cat-default-1',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+}));
 
 interface StoreContextType {
   products: Product[];
@@ -28,13 +50,13 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [banners, setBanners] = useState<Banner[]>(INITIAL_BANNERS);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   useEffect(() => {
     // 1. Subscribe to Products

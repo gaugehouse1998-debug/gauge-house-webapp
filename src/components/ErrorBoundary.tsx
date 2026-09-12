@@ -53,11 +53,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
           </span>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-3">
-            Application View Encountered an Issue
+            Gauge House could not load this page.
           </h1>
 
           <p className="text-sm text-neutral-400 max-w-md mx-auto mb-8 leading-relaxed">
-            The page encountered a temporary display error. Your cart, orders, and configuration remain safe. Click below to reload or return home.
+            The page encountered a temporary display error. Your cart, orders, and configuration remain safe. Click below to refresh or return to the home page.
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center items-center">
@@ -66,7 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>Reload Application</span>
+              <span>Refresh</span>
             </button>
 
             <button
@@ -77,13 +77,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
               <span>Return to Homepage</span>
             </button>
           </div>
-
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
-            <div className="mt-8 max-w-xl w-full p-4 rounded-xl bg-neutral-900 border border-neutral-800 text-left font-mono text-xs text-red-400 overflow-auto max-h-48">
-              <p className="font-bold mb-1 text-neutral-300">Error Details:</p>
-              <p>{this.state.error.toString()}</p>
-            </div>
-          )}
         </div>
       );
     }

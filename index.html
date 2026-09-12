@@ -9,9 +9,35 @@
     <meta property="og:description" content="Gauge House: Industrial Equipment Supplier, Importer & Exporter. Online industrial product catalog & ordering system." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Single-page app trailing slash enforcement for GitHub Pages subpath hosting
+      (function() {
+        var pathname = window.location.pathname;
+        if (pathname && !pathname.endsWith('/') && !pathname.split('/').pop().includes('.')) {
+          window.location.replace(pathname + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-neutral-950 text-neutral-100 antialiased">
+    <div id="root">
+      <!-- Non-blank fallback shell rendered before React mounts -->
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0a0a0a; color: #ffffff; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 24px;">
+        <div style="max-width: 420px; width: 100%;">
+          <div style="width: 48px; height: 48px; margin: 0 auto 16px; border: 3px solid #ea580c; border-top-color: transparent; border-radius: 50%; animation: gh-spin 1s linear infinite;"></div>
+          <h1 style="font-size: 20px; font-weight: 800; margin: 0 0 8px; color: #ffffff; letter-spacing: -0.025em;">Gauge House</h1>
+          <p style="font-size: 13px; color: #a3a3a3; margin: 0;">Precision Industrial Gauges &amp; Equipment</p>
+        </div>
+      </div>
+      <style>
+        @keyframes gh-spin { to { transform: rotate(360deg); } }
+      </style>
+      <noscript>
+        <div style="text-align: center; padding: 24px; color: #f87171;">
+          <p>Please enable JavaScript to view Gauge House online catalog.</p>
+        </div>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
