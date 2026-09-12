@@ -27,7 +27,29 @@ function MainApp() {
     // Strip leading hashes
     route = route.replace(/^#+/, '');
     
-    // Strip GitHub Pages base path variations
+    // Ignore pure anchor hashes like why-gauge-house or contact
+    if (route === 'why-gauge-house' || route === 'contact') {
+      return '/';
+    }
+
+    // Dynamically strip GitHub Pages repo path if hosted on *.github.io
+    if (typeof window !== 'undefined' && window.location.hostname.includes('github.io')) {
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      if (segments.length > 0) {
+        const repoPrefix = '/' + segments[0];
+        if (route.startsWith(repoPrefix + '/')) {
+          route = route.slice(repoPrefix.length);
+        } else if (route === repoPrefix) {
+          route = '/';
+        } else if (route.startsWith(segments[0] + '/')) {
+          route = '/' + route.slice(segments[0].length + 1);
+        } else if (route === segments[0]) {
+          route = '/';
+        }
+      }
+    }
+
+    // Strip known hardcoded repo variations
     if (route.startsWith('/gauge-house-webapp/')) {
       route = route.slice('/gauge-house-webapp/'.length - 1);
     } else if (route === '/gauge-house-webapp') {
@@ -38,12 +60,15 @@ function MainApp() {
       route = '/';
     }
 
+    // Strip query params for route matching
+    const baseRoute = route.split('?')[0];
+
     // Ensure leading slash if not empty
-    if (!route.startsWith('/')) {
-      route = '/' + route;
+    if (!baseRoute.startsWith('/')) {
+      return '/' + baseRoute;
     }
 
-    return route || '/';
+    return baseRoute || '/';
   };
 
   // Navigation route state
@@ -67,12 +92,12 @@ function MainApp() {
     }
   });
 
-  // Auto-seed default official categories if Firestore has none yet
+  // Auto-seed default official categories only if admin and Firestore has none yet
   useEffect(() => {
-    if (!loading && categories.length === 0) {
+    if (isAdmin && !loading && categories.length === 0) {
       seedDefaultCategories().catch((e) => console.log('Auto-seed check note:', e));
     }
-  }, [loading, categories.length]);
+  }, [isAdmin, loading, categories.length]);
 
   // Sync route on popstate and hashchange
   useEffect(() => {
@@ -103,8 +128,27 @@ function MainApp() {
   }, []);
 
   const navigate = (route: string) => {
-    window.location.hash = route;
-    setCurrentRoute(route);
+    // Handle anchor links like /#why-gauge-house or #contact
+    if (route.startsWith('/#') || route.startsWith('#')) {
+      const elementId = route.replace(/^\/?#/, '');
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      // If not on homepage, navigate to homepage first then scroll
+      setCurrentRoute('/');
+      window.location.hash = '/';
+      setTimeout(() => {
+        const elDelayed = document.getElementById(elementId);
+        if (elDelayed) elDelayed.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return;
+    }
+
+    const cleanRoute = route.startsWith('/') ? route : '/' + route;
+    window.location.hash = cleanRoute;
+    setCurrentRoute(cleanRoute);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

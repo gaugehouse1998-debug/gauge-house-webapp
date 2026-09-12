@@ -6,17 +6,32 @@
     <title>Gauge House — Precision Industrial Gauges & Equipment</title>
     <script>
       // Single Page Apps redirect for GitHub Pages
-      // Redirects 404s back to the root of the app with the route in the hash
+      // Redirects 404s back to the base of the app with the route stored in the hash
       (function () {
-        var base = '/gauge-house-webapp/';
-        var path = window.location.pathname;
-        if (path.startsWith(base)) {
-          path = path.slice(base.length - 1);
+        var l = window.location;
+        var path = l.pathname || '';
+        var segments = path.split('/').filter(Boolean);
+        
+        var base = '/';
+        var appRoute = path;
+        
+        // On *.github.io, project pages are hosted at /repo-name/
+        if (l.hostname.indexOf('github.io') !== -1 && segments.length > 0) {
+          base = '/' + segments[0] + '/';
+          appRoute = '/' + segments.slice(1).join('/');
+        } else if (path.startsWith('/gauge-house-webapp/')) {
+          base = '/gauge-house-webapp/';
+          appRoute = '/' + segments.slice(1).join('/');
         }
-        var search = window.location.search || '';
-        var hash = window.location.hash || '';
-        var newUrl = base + '#' + path + search + hash;
-        window.location.replace(newUrl);
+        
+        if (!appRoute.startsWith('/')) {
+          appRoute = '/' + appRoute;
+        }
+        
+        var search = l.search || '';
+        var hash = l.hash || '';
+        var newUrl = l.protocol + '//' + l.host + base + '#' + appRoute + search + hash;
+        l.replace(newUrl);
       })();
     </script>
   </head>

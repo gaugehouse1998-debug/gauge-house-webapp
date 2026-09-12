@@ -65,8 +65,19 @@ function aistudioMediaPlugin(): Plugin {
 // LINT.ThenChange(//depot/google3/java/com/google/alkali/boq/makersuite/applet_dev_service/templates/initializers/react_theme/vite.config.ts:aistudio_media_plugin)
 
 export default defineConfig(() => {
+  // Determine base path: GitHub Pages actions env, repo name, or relative './'
+  let base = './';
+  if (process.env.VITE_BASE_PATH && process.env.VITE_BASE_PATH !== '/') {
+    base = process.env.VITE_BASE_PATH.endsWith('/') ? process.env.VITE_BASE_PATH : `${process.env.VITE_BASE_PATH}/`;
+  } else if (process.env.GITHUB_REPOSITORY) {
+    const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+    if (repo && !repo.endsWith('.github.io')) {
+      base = `/${repo}/`;
+    }
+  }
+
   return {
-    base: '/gauge-house-webapp/',
+    base,
     plugins: [react(), tailwindcss(), aistudioMediaPlugin()],
     resolve: {
       alias: {
