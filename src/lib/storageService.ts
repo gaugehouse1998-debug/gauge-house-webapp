@@ -69,13 +69,14 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
 
 /**
  * Optimizes and resizes images in browser using HTML5 Canvas.
- * Produces crisp high-quality WebP/JPEG images without huge bloat.
+ * Produces crisp, high-clarity WebP/JPEG images with optimal byte size
+ * to guarantee documents never exceed Firestore's 1MB limit.
  */
 export async function optimizeImage(
   file: File,
-  maxWidth = 1600,
+  maxWidth = 1200,
   maxHeight = 1200,
-  quality = 0.84
+  quality = 0.78
 ): Promise<{ blob: Blob; dataUrl: string; width: number; height: number }> {
   // SVG files can be read directly
   if (file.type === 'image/svg+xml') {
@@ -114,7 +115,7 @@ export async function optimizeImage(
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Determine output format
+        // Determine output format (prefer WebP for maximum compression ratio)
         let outputMime = file.type === 'image/png' ? 'image/png' : 'image/webp';
 
         const tryBlob = (mime: string, q: number): Promise<Blob | null> => {
@@ -139,10 +140,10 @@ export async function optimizeImage(
           }
           let dataUrl = canvas.toDataURL(outputMime, quality);
 
-          // Safety guard for durable storage: if dataUrl exceeds 750KB, compress slightly to guarantee it fits in Firestore (1MB limit)
-          if (dataUrl.length > 750000 && width > 1200) {
-            const downScaleRatio = 1200 / width;
-            const downW = 1200;
+          // Guarantee durable storage safety: if dataUrl exceeds 180KB, compress to ensure it never bloats Firestore
+          if (dataUrl.length > 180000 && width > 600) {
+            const downScaleRatio = 600 / width;
+            const downW = 600;
             const downH = Math.round(height * downScaleRatio);
             const downCanvas = document.createElement('canvas');
             downCanvas.width = downW;
@@ -153,11 +154,11 @@ export async function optimizeImage(
               downCtx.imageSmoothingQuality = 'high';
               downCtx.drawImage(img, 0, 0, downW, downH);
               const smallerBlob = await new Promise<Blob | null>((res) => {
-                downCanvas.toBlob((b) => res(b), 'image/webp', 0.78);
+                downCanvas.toBlob((b) => res(b), 'image/webp', 0.72);
               });
               if (smallerBlob) {
                 blob = smallerBlob;
-                dataUrl = downCanvas.toDataURL('image/webp', 0.78);
+                dataUrl = downCanvas.toDataURL('image/webp', 0.72);
                 width = downW;
                 height = downH;
               }
@@ -178,10 +179,9 @@ export async function optimizeImage(
 }
 
 /**
- * Uploads an image for Product, Category, or Hero Banner.
- * Tries Firebase Storage first (at hero-banners/{unique-file-name} for banners);
- * if storage bucket is inaccessible or returns an error, automatically falls back
- * to durable Firestore media storage so images persist and display permanently.
+ * Uploads an image for Product, Category, Hero Banner, or Payment Proof.
+ * Tries Firebase Storage first; if storage bucket is inaccessible or returns an error,
+ * automatically falls back to durable Firestore media storage so images persist and display permanently.
  */
 export async function uploadImageFile(
   file: File,
@@ -195,12 +195,15 @@ export async function uploadImageFile(
     throw new Error(validation.error || 'Invalid image file.');
   }
 
-  // 2. Pre-process and optimize (banners use wide 1920x1080 bounds)
+  // 2. Pre-process and optimize with tailored bounds per media type
   if (onProgress) onProgress(15);
   const isBanner = folder === 'banners';
-  const maxWidth = isBanner ? 1920 : 1200;
-  const maxHeight = isBanner ? 1080 : 1200;
-  const quality = isBanner ? 0.85 : 0.82;
+  const isCategory = folder === 'categories';
+  const isPaymentProof = folder === 'payment_proofs';
+
+  const maxWidth = isBanner ? 1600 : isCategory ? 600 : isPaymentProof ? 1200 : 800;
+  const maxHeight = isBanner ? 700 : isCategory ? 600 : isPaymentProof ? 1600 : 800;
+  const quality = isBanner ? 0.80 : isPaymentProof ? 0.75 : 0.78;
 
   const { blob, dataUrl } = await optimizeImage(file, maxWidth, maxHeight, quality);
   if (onProgress) onProgress(35);
@@ -211,7 +214,7 @@ export async function uploadImageFile(
     .replace(/(^-|-$)/g, '');
   const timestamp = Date.now();
   
-  // Safe storage path: hero-banners/{filename} for banners as specified by prompt
+  // Safe storage path
   const storagePath = isBanner
     ? `hero-banners/${timestamp}_${cleanName}`
     : `${folder}/${itemId || 'general'}/${timestamp}_${cleanName}`;
@@ -228,12 +231,12 @@ export async function uploadImageFile(
         customMetadata: {
           originalName: file.name,
           folder,
-          itemId: itemId || 'hero',
+          itemId: itemId || 'general',
           uploadedAt: now,
         },
       });
 
-      // Wrap with a 25s timeout to guard against hangs on unreachable networks
+      // Wrap with a fast 6s timeout to guard against hangs on unreachable storage buckets
       const uploadPromise = new Promise<string>((resolve, reject) => {
         uploadTask.on(
           'state_changed',
@@ -263,7 +266,7 @@ export async function uploadImageFile(
         setTimeout(() => {
           try { uploadTask.cancel(); } catch (_) {}
           reject(new Error('Firebase Storage timeout, switching to durable media fallback'));
-        }, 25000);
+        }, 6000);
       });
 
       const downloadUrl = await Promise.race([uploadPromise, timeoutPromise]);

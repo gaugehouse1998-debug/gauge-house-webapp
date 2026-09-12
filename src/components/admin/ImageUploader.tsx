@@ -531,6 +531,7 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
       });
 
       onChange(res.url);
+      setLocalPreview(null);
       setSuccessMessage(
         folder === 'banners'
           ? 'Hero banner uploaded successfully.'

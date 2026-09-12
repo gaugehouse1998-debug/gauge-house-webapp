@@ -159,6 +159,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isUploadingCategory, setIsUploadingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
   // Global Notification State
@@ -758,6 +759,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingCategory) {
+      setCategoryError('Please wait for the category image upload to finish.');
+      return;
+    }
     if (!catName.trim()) {
       setCategoryError('Category title is required.');
       return;
@@ -2251,6 +2256,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                   value={catImage}
                   onChange={setCatImage}
                   aspectRatio="video"
+                  onUploadingChange={setIsUploadingCategory}
                 />
               </div>
               <div>
@@ -2273,7 +2279,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  disabled={isSavingCategory}
+                  disabled={isSavingCategory || isUploadingCategory}
                   onClick={() => setCategoryModalOpen(false)}
                   className="px-3 py-1.5 text-xs text-neutral-600 font-semibold cursor-pointer disabled:opacity-50"
                 >
@@ -2281,11 +2287,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingCategory}
+                  disabled={isSavingCategory || isUploadingCategory}
                   className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-xs"
                 >
-                  {isSavingCategory && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isSavingCategory ? 'Saving Category...' : 'Save Category'}</span>
+                  {(isSavingCategory || isUploadingCategory) && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>
+                    {isUploadingCategory
+                      ? 'Uploading Image...'
+                      : isSavingCategory
+                      ? 'Saving Category...'
+                      : 'Save Category'}
+                  </span>
                 </button>
               </div>
             </form>

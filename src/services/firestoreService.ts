@@ -406,9 +406,9 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 export async function submitOrderPaymentProof(
   orderId: string,
   paymentData: {
-    transactionId: string;
-    paidAmount: number;
-    paymentProofUrl?: string;
+    paymentProofUrl: string;
+    transactionId?: string;
+    paidAmount?: number;
     paymentNotes?: string;
     selectedBankAccountId?: string;
     selectedBankName?: string;
@@ -419,10 +419,10 @@ export async function submitOrderPaymentProof(
     const now = new Date().toISOString();
     const updatePayload = cleanFirestoreData({
       paymentStatus: 'pending_verification',
-      transactionId: paymentData.transactionId.trim(),
-      paidAmount: Number(paymentData.paidAmount) || 0,
       paymentProofUrl: paymentData.paymentProofUrl || '',
       paymentSubmittedAt: now,
+      transactionId: paymentData.transactionId ? paymentData.transactionId.trim() : '',
+      paidAmount: paymentData.paidAmount !== undefined ? Number(paymentData.paidAmount) : undefined,
       paymentNotes: paymentData.paymentNotes?.trim() || '',
       selectedBankAccountId: paymentData.selectedBankAccountId || '',
       selectedBankName: paymentData.selectedBankName || '',

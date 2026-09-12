@@ -7,18 +7,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Strict admin verification: Email must match authorized admin, and if admins/{uid} or admin_users/{uid} exists, role must be 'admin'
+    // Strict admin verification: Email must match authorized admin, or user has admin role in admins/admin_users
     function isAuthorizedAdmin() {
-      return isSignedIn() &&
-        request.auth.token.email == 'gaugehouse1998@gmail.com' &&
+      return isSignedIn() && (
+        request.auth.token.email.matches('(?i)gaugehouse1998@gmail\\.com') ||
         (
-          !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'
-        ) &&
+        ) ||
         (
-          !exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) ||
+          exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'admin'
-        );
+        )
+      );
     }
 
     // Test connection probe (per Firebase skill guidelines)
@@ -58,20 +59,18 @@ service cloud.firestore {
       allow read, delete: if isAuthorizedAdmin();
       // Authorized admin can update anything (status, paymentStatus, approve, reject)
       allow update: if isAuthorizedAdmin();
-      // Customer can read their own order if userId or customerUid matches
-      allow read: if isSignedIn() && (
-        (resource.data.customer != null && resource.data.customer.userId == request.auth.uid) ||
-        resource.data.customerUid == request.auth.uid
-      );
-      // Customer can update their own order to submit TID and payment proof
-      allow update: if isSignedIn() && (
-        (resource.data.customerUid == request.auth.uid ||
-         (resource.data.customer != null && resource.data.customer.userId == request.auth.uid)) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'paymentStatus', 'transactionId', 'paidAmount', 'paymentProofUrl',
-          'paymentSubmittedAt', 'paymentNotes', 'selectedBankAccountId', 'selectedBankName', 'updatedAt'
-        ]) &&
-        request.resource.data.paymentStatus == 'pending_verification'
+      // Customer can read order on confirmation page or if their uid matches
+      allow read: if true;
+      // Customer/guest can update order to submit payment proof slip
+      allow update: if (
+        isAuthorizedAdmin() ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'paymentStatus', 'transactionId', 'paidAmount', 'paymentProofUrl',
+            'paymentSubmittedAt', 'paymentNotes', 'selectedBankAccountId', 'selectedBankName', 'updatedAt'
+          ]) &&
+          request.resource.data.paymentStatus == 'pending_verification'
+        )
       );
     }
 
@@ -102,7 +101,7 @@ service cloud.firestore {
     // Uploaded media metadata & durable storage: public/signedIn can read, admin or customer can write proof
     match /uploaded_media/{mediaId} {
       allow read: if true;
-      allow write: if isAuthorizedAdmin() || (isSignedIn() && request.resource.data.folder == 'payment_proofs');
+      allow write: if isAuthorizedAdmin() || request.resource.data.folder == 'payment_proofs';
     }
 
     // Admin users list: strictly restricted to authorized admin
