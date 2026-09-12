@@ -473,6 +473,7 @@ interface SingleImageUploaderProps {
   value?: string;
   onChange: (url: string) => void;
   aspectRatio?: 'square' | 'video' | 'banner';
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
 export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
@@ -483,10 +484,13 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
   value,
   onChange,
   aspectRatio = 'video',
+  onUploadingChange,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -494,6 +498,7 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenPicker = () => {
+    if (isUploading) return;
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -501,17 +506,23 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
   };
 
   const handleFile = async (file: File) => {
-    if (!file) return;
+    if (!file || isUploading) return;
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     const validation = validateImageFile(file);
     if (!validation.valid) {
-      setErrorMessage(validation.error || 'Invalid file format.');
+      setErrorMessage(validation.error || 'Invalid file format. Please upload JPG, PNG, or WEBP under 10MB.');
       return;
     }
 
+    // Immediate preview for instant user feedback
+    const previewObjectUrl = URL.createObjectURL(file);
+    setLocalPreview(previewObjectUrl);
+
     setIsUploading(true);
     setUploadProgress(15);
+    if (onUploadingChange) onUploadingChange(true);
 
     try {
       const oldUrl = value;
@@ -520,16 +531,26 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
       });
 
       onChange(res.url);
+      setSuccessMessage(
+        folder === 'banners'
+          ? 'Hero banner uploaded successfully.'
+          : 'Image uploaded successfully.'
+      );
 
-      if (oldUrl && oldUrl !== res.url) {
+      if (oldUrl && oldUrl !== res.url && !oldUrl.startsWith('data:')) {
         deleteImageFromStorage(oldUrl);
       }
     } catch (err: any) {
       console.error('Upload failure:', err);
-      setErrorMessage(err?.message || 'Failed to upload image.');
+      setErrorMessage(err?.message || 'Failed to upload image. Please try again.');
+      setLocalPreview(null);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      if (onUploadingChange) onUploadingChange(false);
+      try {
+        URL.revokeObjectURL(previewObjectUrl);
+      } catch (_) {}
     }
   };
 
@@ -543,14 +564,21 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
   };
 
   const handleRemove = () => {
-    if (value) {
+    if (isUploading) return;
+    if (value && !value.startsWith('data:')) {
       deleteImageFromStorage(value);
     }
+    setLocalPreview(null);
+    setSuccessMessage(null);
+    setErrorMessage(null);
     onChange('');
   };
 
   const handleApplyUrl = () => {
     if (!urlInputValue.trim()) return;
+    setLocalPreview(null);
+    setErrorMessage(null);
+    setSuccessMessage(folder === 'banners' ? 'Hero banner URL applied successfully.' : 'Image URL applied successfully.');
     onChange(urlInputValue.trim());
     setUrlInputValue('');
     setShowUrlInput(false);
@@ -562,6 +590,8 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
       : aspectRatio === 'banner'
       ? 'aspect-21/9'
       : 'aspect-16/9';
+
+  const displayedImage = localPreview || value;
 
   return (
     <div className="space-y-2">
@@ -614,38 +644,60 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
       )}
 
       {/* Upload / Preview Card */}
-      {value ? (
+      {displayedImage ? (
         <div className={`relative w-full ${aspectClass} rounded-xl overflow-hidden border-2 border-neutral-200 group bg-neutral-100`}>
           <img
-            src={value}
+            src={displayedImage}
             alt={label}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-neutral-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleOpenPicker}
-              className="px-3 py-1.5 bg-white text-neutral-900 font-bold text-xs rounded-lg shadow-sm hover:bg-neutral-100 flex items-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Replace Image</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="px-3 py-1.5 bg-red-600 text-white font-bold text-xs rounded-lg shadow-sm hover:bg-red-700 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Remove</span>
-            </button>
-          </div>
+
+          {/* Active Uploading Overlay */}
+          {isUploading ? (
+            <div className="absolute inset-0 bg-neutral-950/70 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-white space-y-2">
+              <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              <div className="text-center space-y-1">
+                <p className="text-xs font-bold">
+                  {folder === 'banners' ? 'Uploading hero banner...' : 'Uploading image...'}
+                </p>
+                <p className="text-[11px] text-neutral-300 font-mono">
+                  {uploadProgress > 0 ? `${uploadProgress}% complete` : 'Optimizing resolution...'}
+                </p>
+              </div>
+              <div className="w-44 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 transition-all duration-200"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-neutral-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleOpenPicker}
+                className="px-3 py-1.5 bg-white text-neutral-900 font-bold text-xs rounded-lg shadow-sm hover:bg-neutral-100 flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Replace Image</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="px-3 py-1.5 bg-red-600 text-white font-bold text-xs rounded-lg shadow-sm hover:bg-red-700 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remove</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div
           onDragOver={(e) => {
             e.preventDefault();
-            setIsDragging(true);
+            if (!isUploading) setIsDragging(true);
           }}
           onDragLeave={(e) => {
             e.preventDefault();
@@ -653,7 +705,9 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
           }}
           onDrop={handleDrop}
           onClick={handleOpenPicker}
-          className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+          className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+            isUploading ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+          } ${
             isDragging
               ? 'border-orange-500 bg-orange-50'
               : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100 hover:border-neutral-400'
@@ -669,10 +723,10 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
             </div>
             <div>
               <p className="text-xs font-bold text-neutral-800">
-                {isUploading ? `Uploading image (${uploadProgress}%)...` : 'Open Gallery / Pick Image'}
+                {isUploading ? `Uploading image (${uploadProgress}%)...` : 'Click or Drag Hero Banner Image'}
               </p>
               <p className="text-[10px] text-neutral-500 mt-0.5">
-                Click or drag & drop (JPG, PNG, WEBP up to 10MB)
+                Supported formats: JPG, PNG, WEBP (Recommended: 1920×800 or wider, up to 10MB)
               </p>
             </div>
           </div>
@@ -688,10 +742,37 @@ export const SingleImageUploader: React.FC<SingleImageUploaderProps> = ({
         </div>
       )}
 
+      {/* Success Notification */}
+      {successMessage && (
+        <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center justify-between gap-2 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{successMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMessage(null)}
+            className="text-emerald-700 hover:text-emerald-950 text-xs font-bold cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Error Notification */}
       {errorMessage && (
-        <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
+        <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center justify-between gap-2 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+            <span className="font-semibold">{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenPicker}
+            className="text-[11px] underline font-bold hover:text-red-900 cursor-pointer shrink-0"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>

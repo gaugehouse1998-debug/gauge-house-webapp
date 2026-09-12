@@ -155,6 +155,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   const [banCta, setBanCta] = useState('');
   const [banLink, setBanLink] = useState('');
   const [isSavingBanner, setIsSavingBanner] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   const [isSavingCategory, setIsSavingCategory] = useState(false);
@@ -811,6 +812,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingBanner) {
+      setBannerError('Please wait for the hero banner image upload to finish.');
+      return;
+    }
     if (!banTitle.trim()) {
       setBannerError('Headline title is required.');
       return;
@@ -837,11 +842,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
       };
       if (editingBanner?.id) bannerPayload.id = editingBanner.id;
       await saveBannerInFirestore(bannerPayload);
-      showNotification('success', `Hero banner "${bannerPayload.title}" saved successfully to Firestore!`);
+      showNotification('success', `Hero banner "${bannerPayload.title}" saved successfully!`);
       setBannerModalOpen(false);
     } catch (err: any) {
       console.error('Failed to save banner:', err);
-      setBannerError(err?.message || 'Failed to save banner to Firestore.');
+      setBannerError(err?.message || 'Failed to save banner.');
     } finally {
       setIsSavingBanner(false);
     }
@@ -2318,12 +2323,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               <div>
                 <SingleImageUploader
                   label="Hero Banner Picture"
-                  sublabel="Upload wide hero banner for the homepage"
+                  sublabel="Upload wide hero banner for the homepage (JPG, PNG, WEBP up to 10MB)"
                   folder="banners"
                   itemId={editingBanner?.id || 'new_banner'}
                   value={banImage}
-                  onChange={setBanImage}
+                  onChange={(url) => {
+                    setBanImage(url);
+                    setBannerError(null);
+                  }}
                   aspectRatio="banner"
+                  onUploadingChange={setIsUploadingBanner}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -2357,7 +2366,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  disabled={isSavingBanner}
+                  disabled={isSavingBanner || isUploadingBanner}
                   onClick={() => setBannerModalOpen(false)}
                   className="px-3 py-1.5 text-xs text-neutral-600 font-semibold cursor-pointer disabled:opacity-50"
                 >
@@ -2365,11 +2374,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingBanner}
+                  disabled={isSavingBanner || isUploadingBanner}
                   className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-xs"
                 >
-                  {isSavingBanner && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isSavingBanner ? 'Saving Banner...' : 'Save Banner'}</span>
+                  {(isSavingBanner || isUploadingBanner) && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>
+                    {isUploadingBanner
+                      ? 'Uploading Banner...'
+                      : isSavingBanner
+                      ? 'Saving Banner...'
+                      : 'Save Banner'}
+                  </span>
                 </button>
               </div>
             </form>

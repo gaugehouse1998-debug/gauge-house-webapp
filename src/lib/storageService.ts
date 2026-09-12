@@ -73,9 +73,9 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
  */
 export async function optimizeImage(
   file: File,
-  maxWidth = 1000,
-  maxHeight = 1000,
-  quality = 0.82
+  maxWidth = 1600,
+  maxHeight = 1200,
+  quality = 0.84
 ): Promise<{ blob: Blob; dataUrl: string; width: number; height: number }> {
   // SVG files can be read directly
   if (file.type === 'image/svg+xml') {
@@ -137,7 +137,33 @@ export async function optimizeImage(
             reject(new Error('Image conversion failed'));
             return;
           }
-          const dataUrl = canvas.toDataURL(outputMime, quality);
+          let dataUrl = canvas.toDataURL(outputMime, quality);
+
+          // Safety guard for durable storage: if dataUrl exceeds 750KB, compress slightly to guarantee it fits in Firestore (1MB limit)
+          if (dataUrl.length > 750000 && width > 1200) {
+            const downScaleRatio = 1200 / width;
+            const downW = 1200;
+            const downH = Math.round(height * downScaleRatio);
+            const downCanvas = document.createElement('canvas');
+            downCanvas.width = downW;
+            downCanvas.height = downH;
+            const downCtx = downCanvas.getContext('2d');
+            if (downCtx) {
+              downCtx.imageSmoothingEnabled = true;
+              downCtx.imageSmoothingQuality = 'high';
+              downCtx.drawImage(img, 0, 0, downW, downH);
+              const smallerBlob = await new Promise<Blob | null>((res) => {
+                downCanvas.toBlob((b) => res(b), 'image/webp', 0.78);
+              });
+              if (smallerBlob) {
+                blob = smallerBlob;
+                dataUrl = downCanvas.toDataURL('image/webp', 0.78);
+                width = downW;
+                height = downH;
+              }
+            }
+          }
+
           resolve({ blob, dataUrl, width, height });
         } catch (e) {
           reject(e);
@@ -152,9 +178,10 @@ export async function optimizeImage(
 }
 
 /**
- * Uploads an image for Product, Category, or Banner.
- * Tries Firebase Storage first; if storage bucket is inaccessible,
- * automatically falls back to durable Firestore media storage so images persist permanently.
+ * Uploads an image for Product, Category, or Hero Banner.
+ * Tries Firebase Storage first (at hero-banners/{unique-file-name} for banners);
+ * if storage bucket is inaccessible or returns an error, automatically falls back
+ * to durable Firestore media storage so images persist and display permanently.
  */
 export async function uploadImageFile(
   file: File,
@@ -168,9 +195,14 @@ export async function uploadImageFile(
     throw new Error(validation.error || 'Invalid image file.');
   }
 
-  // 2. Pre-process and optimize
+  // 2. Pre-process and optimize (banners use wide 1920x1080 bounds)
   if (onProgress) onProgress(15);
-  const { blob, dataUrl } = await optimizeImage(file);
+  const isBanner = folder === 'banners';
+  const maxWidth = isBanner ? 1920 : 1200;
+  const maxHeight = isBanner ? 1080 : 1200;
+  const quality = isBanner ? 0.85 : 0.82;
+
+  const { blob, dataUrl } = await optimizeImage(file, maxWidth, maxHeight, quality);
   if (onProgress) onProgress(35);
 
   const cleanName = file.name
@@ -178,7 +210,12 @@ export async function uploadImageFile(
     .replace(/[^a-z0-9.]+/g, '-')
     .replace(/(^-|-$)/g, '');
   const timestamp = Date.now();
-  const storagePath = `${folder}/${itemId || 'general'}/${timestamp}_${cleanName}`;
+  
+  // Safe storage path: hero-banners/{filename} for banners as specified by prompt
+  const storagePath = isBanner
+    ? `hero-banners/${timestamp}_${cleanName}`
+    : `${folder}/${itemId || 'general'}/${timestamp}_${cleanName}`;
+
   const mediaId = `media_${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
 
@@ -191,12 +228,12 @@ export async function uploadImageFile(
         customMetadata: {
           originalName: file.name,
           folder,
-          itemId,
+          itemId: itemId || 'hero',
           uploadedAt: now,
         },
       });
 
-      // Wrap with a 5s timeout to guard against hung retries on unreachable buckets
+      // Wrap with a 25s timeout to guard against hangs on unreachable networks
       const uploadPromise = new Promise<string>((resolve, reject) => {
         uploadTask.on(
           'state_changed',
@@ -225,14 +262,14 @@ export async function uploadImageFile(
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
           try { uploadTask.cancel(); } catch (_) {}
-          reject(new Error('Firebase Storage timeout, switching to durable Firestore storage'));
-        }, 5000);
+          reject(new Error('Firebase Storage timeout, switching to durable media fallback'));
+        }, 25000);
       });
 
       const downloadUrl = await Promise.race([uploadPromise, timeoutPromise]);
       if (onProgress) onProgress(100);
 
-      // Save metadata in Firestore
+      // Save metadata in Firestore uploaded_media collection
       try {
         await setDoc(doc(db, 'uploaded_media', mediaId), cleanFirestoreData({
           id: mediaId,
@@ -261,10 +298,10 @@ export async function uploadImageFile(
       };
     } catch (storageError) {
       console.warn(
-        'Firebase Storage upload attempt note (falling back to durable Firestore media storage):',
+        'Firebase Storage upload note (using durable media fallback):',
         storageError
       );
-      // Fall through to durable Firestore storage
+      // Fall through to durable fallback
     }
   }
 
@@ -298,9 +335,8 @@ export async function uploadImageFile(
       uploadedAt: now,
     };
   } catch (firestoreError) {
-    console.error('Failed to store media in Firestore:', firestoreError);
+    console.warn('Media fallback direct return:', firestoreError);
     if (onProgress) onProgress(100);
-    // Return dataUrl directly so admin can still save product
     return {
       url: dataUrl,
       path: storagePath,

@@ -115,6 +115,7 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                 <img
                   src={
                     activeBanner?.imageUrl ||
+                    activeBanner?.image ||
                     'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1000&q=80'
                   }
                   alt="Industrial Gauge House"

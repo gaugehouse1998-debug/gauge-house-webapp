@@ -6,9 +6,20 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore per Firebase skill guidelines:
-// export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with robust long-polling transport for iframe, proxy, and sandbox network environments
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(
+    app,
+    {
+      experimentalForceLongPolling: true,
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch {
+  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreDb;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -108,16 +119,9 @@ export function cleanFirestoreData<T>(data: T): T {
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
     if (typeof window === 'undefined') return true;
-    await getDoc(doc(db, 'settings', 'general'));
+    await getDoc(doc(db, 'test', 'connection_probe'));
     return true;
   } catch {
     return false;
   }
-}
-
-// Trigger connection check gracefully after initial render cycle
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    testFirestoreConnection().catch(() => {});
-  }, 2000);
 }

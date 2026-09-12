@@ -1,10 +1,45 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Public read for all uploaded product, category, and banner images
+    // Helper function to check if the caller is the authorized Gauge House administrator
+    function isAuthorizedAdmin() {
+      return request.auth != null &&
+        request.auth.token.email == 'gaugehouse1998@gmail.com';
+    }
+
+    // 1. HERO BANNERS: Public can read/display, only authorized admin can upload, replace, and delete
+    match /hero-banners/{fileName} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorizedAdmin();
+    }
+
+    // Legacy/nested banners path
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorizedAdmin();
+    }
+
+    // 2. PRODUCTS & CATEGORIES: Public can read, only authorized admin can write
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorizedAdmin();
+    }
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorizedAdmin();
+    }
+
+    // 3. PAYMENT PROOFS: Authenticated customers can upload proof for orders, admin can manage
+    match /payment_proofs/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if isAuthorizedAdmin();
+    }
+
+    // 4. Default fallback: Public can read, only authorized admin can write
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'gaugehouse1998@gmail.com';
+      allow write: if isAuthorizedAdmin();
     }
   }
 }
