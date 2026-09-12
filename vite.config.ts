@@ -64,9 +64,9 @@ function aistudioMediaPlugin(): Plugin {
 }
 // LINT.ThenChange(//depot/google3/java/com/google/alkali/boq/makersuite/applet_dev_service/templates/initializers/react_theme/vite.config.ts:aistudio_media_plugin)
 
-export default defineConfig(() => {
-  // Determine base path: GitHub Pages actions env, repo name, or relative './'
-  let base = './';
+export default defineConfig(({ command }) => {
+  // Determine base path: GitHub Pages actions env, repo name, or default to repository path '/gauge-house-webapp/' for production build
+  let base = command === 'build' ? '/gauge-house-webapp/' : '/';
   if (process.env.VITE_BASE_PATH && process.env.VITE_BASE_PATH !== '/') {
     base = process.env.VITE_BASE_PATH.endsWith('/') ? process.env.VITE_BASE_PATH : `${process.env.VITE_BASE_PATH}/`;
   } else if (process.env.GITHUB_REPOSITORY) {
