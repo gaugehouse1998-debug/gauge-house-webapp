@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { initializeFirestore, getFirestore, doc, getDocFromServer, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -104,23 +104,14 @@ export function cleanFirestoreData<T>(data: T): T {
   return data;
 }
 
-// Validate Firestore connection on boot (per Firebase skill guidelines)
+// Validate Firestore connection gracefully (per Firebase skill guidelines)
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
     if (typeof window === 'undefined') return true;
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    await getDoc(doc(db, 'settings', 'general'));
     return true;
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes('the client is offline') ||
-        error.message.includes('unavailable') ||
-        error.message.includes('Failed to get document'))
-    ) {
-      // Graceful notice during offline state or initial handshake
-      return false;
-    }
-    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -128,5 +119,5 @@ export async function testFirestoreConnection(): Promise<boolean> {
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     testFirestoreConnection().catch(() => {});
-  }, 1000);
+  }, 2000);
 }

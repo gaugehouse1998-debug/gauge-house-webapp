@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import {
   LayoutDashboard,
   Package,
@@ -214,6 +215,79 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
   // Tools feedback
   const [toolsMessage, setToolsMessage] = useState<string | null>(null);
+
+  // Admin Password Management State
+  const [currentAdminPassword, setCurrentAdminPassword] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
+
+  const handleUpdateAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError(null);
+    setPasswordChangeSuccess(null);
+
+    if (!user || !user.email) {
+      setPasswordChangeError('No active administrator session found.');
+      return;
+    }
+
+    if (!currentAdminPassword) {
+      setPasswordChangeError('Please enter your current administrator password.');
+      return;
+    }
+
+    if (!newAdminPassword) {
+      setPasswordChangeError('Please enter a new password.');
+      return;
+    }
+
+    if (newAdminPassword.length < 6) {
+      setPasswordChangeError('The new password must be at least 6 characters in length.');
+      return;
+    }
+
+    if (newAdminPassword !== confirmAdminPassword) {
+      setPasswordChangeError('The new password and confirmation password do not match.');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    try {
+      // 1. Re-authenticate admin with current password
+      const credential = EmailAuthProvider.credential(user.email, currentAdminPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // 2. Update to new password via Firebase Auth
+      await updatePassword(user, newAdminPassword);
+
+      // 3. Reset inputs and show success
+      setCurrentAdminPassword('');
+      setNewAdminPassword('');
+      setConfirmAdminPassword('');
+      setPasswordChangeSuccess('Administrator password updated successfully! The previous password has been invalidated.');
+      showNotification('success', 'Admin password changed successfully!');
+    } catch (err: any) {
+      console.error('Password change error:', err);
+      const code = err?.code || '';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setPasswordChangeError('Current password is incorrect. Please verify your current credentials.');
+      } else if (code === 'auth/weak-password') {
+        setPasswordChangeError('New password is too weak. Please use at least 6 characters with a combination of letters and numbers.');
+      } else if (code === 'auth/requires-recent-login') {
+        setPasswordChangeError('Session expired. Please sign out and sign in again before updating credentials.');
+      } else {
+        setPasswordChangeError(err?.message || 'Failed to update administrator password.');
+      }
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
 
   useEffect(() => {
     setSettingsForm(settings);
@@ -1925,6 +1999,133 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 </button>
               </div>
             </form>
+
+            {/* Administrator Security & Password Management Card */}
+            <div className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-5 shadow-xs">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-orange-600" />
+                    <span>Administrator Security & Credentials</span>
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Update the root administrative password for <strong>{user?.email}</strong>. The old password will be invalidated immediately across all sessions.
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-full text-[11px] font-bold">
+                  Root Role: Admin
+                </span>
+              </div>
+
+              {passwordChangeSuccess && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{passwordChangeSuccess}</span>
+                </div>
+              )}
+
+              {passwordChangeError && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>{passwordChangeError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateAdminPassword} className="space-y-4 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                    Current Admin Password
+                  </label>
+                  <div className="relative max-w-md">
+                    <Lock className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      required
+                      value={currentAdminPassword}
+                      onChange={(e) => setCurrentAdminPassword(e.target.value)}
+                      placeholder="Enter current password"
+                      className="w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={newAdminPassword}
+                        onChange={(e) => setNewAdminPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                        tabIndex={-1}
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={confirmAdminPassword}
+                        onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className="w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={passwordChangeLoading}
+                    className="px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-colors"
+                  >
+                    {passwordChangeLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{passwordChangeLoading ? 'Updating Credentials...' : 'Update Admin Password'}</span>
+                  </button>
+                  <p className="text-[11px] text-neutral-500">
+                    Never share your administrative credentials with unauthorized personnel.
+                  </p>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

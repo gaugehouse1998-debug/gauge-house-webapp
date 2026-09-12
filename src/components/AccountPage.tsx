@@ -507,11 +507,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
                       Registered Member
                     </span>
                   )}
-                  {isAdmin && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[11px] font-bold uppercase">
-                      <Shield className="w-3 h-3 text-orange-600" /> Admin
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-4 mt-1 text-xs text-neutral-500 flex-wrap">
@@ -529,7 +524,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Customer Actions */}
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <button
                 onClick={handleOpenEditProfile}
@@ -538,15 +533,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit Details</span>
               </button>
-
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
-                >
-                  Admin Console
-                </button>
-              )}
 
               <button
                 onClick={() => signOut()}
@@ -557,6 +543,24 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
               </button>
             </div>
           </div>
+
+          {isAdmin && (
+            <div className="mt-4 p-4 rounded-2xl bg-orange-50 border border-orange-200 text-orange-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-5 h-5 text-orange-600 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold">You are signed in with the Store Administrator account.</p>
+                  <p className="text-[11px] text-orange-800">Manage products, orders, customers, and bank accounts in the Admin Portal.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/admin')}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer shadow-xs"
+              >
+                Open Admin Portal
+              </button>
+            </div>
+          )}
 
           {/* Delivery & Account Metadata Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 text-xs">

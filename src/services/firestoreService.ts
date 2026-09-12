@@ -619,7 +619,13 @@ export function subscribeToCustomers(
     (snapshot) => {
       const list: CustomerUser[] = [];
       snapshot.forEach((d) => {
-        list.push({ uid: d.id, ...d.data() } as CustomerUser);
+        const data = d.data() as CustomerUser;
+        const email = (data.email || '').toLowerCase().trim();
+        // Admin account must NEVER appear in Customer List, Profiles, or Customer Count
+        if (email === SUPER_ADMIN_EMAIL.toLowerCase() || (data as any).role === 'admin') {
+          return;
+        }
+        list.push({ uid: d.id, ...data });
       });
       list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       onData(list);
@@ -639,7 +645,11 @@ export async function getCustomer(uid: string): Promise<CustomerUser | null> {
   try {
     const snap = await getDoc(doc(db, 'users', uid));
     if (snap.exists()) {
-      return { uid: snap.id, ...snap.data() } as CustomerUser;
+      const data = snap.data() as CustomerUser;
+      if (data.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() || (data as any).role === 'admin') {
+        return null;
+      }
+      return { uid: snap.id, ...data };
     }
     return null;
   } catch (error) {
@@ -652,8 +662,13 @@ export async function saveCustomerProfile(
 ): Promise<void> {
   const path = `users/${profile.uid}`;
   try {
+    // Admin email should never be saved in users collection
+    if (profile.email && profile.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      return;
+    }
     const cleanData = cleanFirestoreData({
       ...profile,
+      role: 'customer',
       email: profile.email ? profile.email.toLowerCase().trim() : undefined,
     });
     await setDoc(doc(db, 'users', profile.uid), cleanData, { merge: true });
@@ -665,7 +680,12 @@ export async function saveCustomerProfile(
 export async function syncCustomerOnAuth(
   user: User,
   extra?: { name?: string; phone?: string; address?: string; city?: string }
-): Promise<CustomerUser> {
+): Promise<CustomerUser | null> {
+  // Admin account must NEVER be stored or synced in users collection
+  if (user.email && user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+    return null;
+  }
+
   const path = `users/${user.uid}`;
   const now = new Date().toISOString();
   try {
@@ -676,6 +696,7 @@ export async function syncCustomerOnAuth(
       const existing = snap.data() as CustomerUser;
       const updateData: Partial<CustomerUser> = {
         lastLoginAt: now,
+        role: 'customer',
       };
       if (extra?.name && (!existing.name || existing.name === 'Customer')) {
         updateData.name = extra.name.trim();
@@ -690,13 +711,14 @@ export async function syncCustomerOnAuth(
         updateData.city = extra.city.trim();
       }
       await setDoc(docRef, cleanFirestoreData(updateData), { merge: true });
-      return { ...existing, ...updateData };
+      return { ...existing, ...updateData, role: 'customer' };
     } else {
-      // First-time registration / Google sign-in customer profile
+      // First-time registration / customer profile
       const newCustomer: CustomerUser = cleanFirestoreData({
         uid: user.uid,
         name: extra?.name?.trim() || user.displayName || user.email?.split('@')[0] || 'Customer',
         email: (user.email || '').toLowerCase().trim(),
+        role: 'customer',
         phone: extra?.phone?.trim() || user.phoneNumber || '',
         address: extra?.address?.trim() || '',
         city: extra?.city?.trim() || '',
@@ -714,11 +736,11 @@ export async function syncCustomerOnAuth(
     }
   } catch (error) {
     console.error('Error syncing customer record:', error);
-    // Return minimum fallback so auth flow doesn't break
     return {
       uid: user.uid,
       name: extra?.name || user.displayName || 'Customer',
       email: user.email || '',
+      role: 'customer',
       phone: extra?.phone || '',
       address: extra?.address || '',
       city: extra?.city || '',
@@ -728,6 +750,8 @@ export async function syncCustomerOnAuth(
       purchaseStatus: 'no_purchase',
       orderCount: 0,
       totalSpend: 0,
+      firstOrderAt: null,
+      lastOrderAt: null,
     };
   }
 }
@@ -866,41 +890,53 @@ export async function saveSettings(settings: Partial<StoreSettings>): Promise<vo
 
 export async function checkUserIsAdmin(user: User | null): Promise<boolean> {
   if (!user || !user.email) return false;
-  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) return false;
+  if (user.email.toLowerCase().trim() !== SUPER_ADMIN_EMAIL.toLowerCase()) return false;
 
   try {
-    const adminDoc = await getDoc(doc(db, 'admin_users', user.uid));
+    const adminDoc = await getDoc(doc(db, 'admins', user.uid));
     if (adminDoc.exists()) {
       const data = adminDoc.data();
-      return data?.role === 'admin' && data?.active === true;
+      if (data?.role === 'admin' && data?.active !== false) return true;
+    }
+    const adminUserDoc = await getDoc(doc(db, 'admin_users', user.uid));
+    if (adminUserDoc.exists()) {
+      const data = adminUserDoc.data();
+      if (data?.role === 'admin' && data?.active !== false) return true;
     }
   } catch {
-    // If permission or document doesn't exist
+    // If rules allow email check
+    return user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase();
   }
-  return false;
+  return user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase();
 }
 
 export async function ensureAdminRecord(user: User): Promise<void> {
-  if (user.email && user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+  if (user.email && user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase()) {
     try {
-      const adminDocRef = doc(db, 'admin_users', user.uid);
-      const snap = await getDoc(adminDocRef);
-      if (!snap.exists()) {
-        await setDoc(
-          adminDocRef,
-          {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || 'Gauge House Admin',
-            role: 'admin',
-            active: true,
-            createdAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
+      const now = new Date().toISOString();
+      const adminData = {
+        uid: user.uid,
+        email: user.email.toLowerCase().trim(),
+        displayName: user.displayName || 'Gauge House Admin',
+        role: 'admin',
+        active: true,
+        updatedAt: now,
+      };
+      await setDoc(doc(db, 'admins', user.uid), adminData, { merge: true });
+      await setDoc(doc(db, 'admin_users', user.uid), adminData, { merge: true });
+
+      // Ensure the admin account NEVER exists in the users (customer) collection
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          await deleteDoc(userDocRef);
+        }
+      } catch {
+        // Ignored if document already does not exist or blocked
       }
-    } catch {
-      // Handled cleanly
+    } catch (e) {
+      console.warn('Admin record sync note:', e);
     }
   }
 }

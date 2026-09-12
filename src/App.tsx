@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { ShieldAlert } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { CartProvider } from './context/CartContext';
 import { Header } from './components/Header';
@@ -19,6 +20,7 @@ import { seedDefaultCategories } from './services/firestoreService';
 
 function MainApp() {
   const { publishedProducts, categories, loading } = useStore();
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   const normalizeRoute = (rawRoute: string): string => {
     let route = (rawRoute || '').trim();
@@ -120,6 +122,27 @@ function MainApp() {
   const renderRouteContent = () => {
     // 1. Admin Portal
     if (currentRoute === '/admin' || currentRoute.startsWith('/admin/')) {
+      if (user && !isAdmin && !authLoading) {
+        return (
+          <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 text-center bg-neutral-50 py-16">
+            <div className="max-w-md w-full bg-white rounded-3xl border border-neutral-200 p-8 shadow-xs">
+              <div className="w-16 h-16 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-black text-neutral-900 mb-2">Access Denied</h2>
+              <p className="text-neutral-600 text-xs sm:text-sm mb-6 leading-relaxed">
+                The Administration Portal is restricted to authorized Gauge House management. Your account does not have administrator privileges.
+              </p>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Return to Storefront
+              </button>
+            </div>
+          </div>
+        );
+      }
       return <AdminPortal navigate={navigate} />;
     }
 

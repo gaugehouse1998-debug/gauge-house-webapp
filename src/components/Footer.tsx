@@ -1,6 +1,7 @@
 import React from 'react';
 import { Gauge, MapPin, Phone, Mail, Clock, ShieldCheck, ArrowUpRight, Lock } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
+import { useAuth } from '../context/AuthContext';
 
 interface FooterProps {
   navigate: (route: string) => void;
@@ -8,6 +9,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ navigate }) => {
   const { settings, activeCategories } = useStore();
+  const { user, isAdmin } = useAuth();
 
   const handleWhatsApp = (phone?: string) => {
     const p = phone?.replace(/[^0-9]/g, '') || '923354499186';
@@ -78,15 +80,17 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
                   Customer Account
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="flex items-center gap-1 text-neutral-500 hover:text-orange-400 transition-colors cursor-pointer text-xs pt-1"
-                >
-                  <Lock className="w-3 h-3" />
-                  <span>Admin Portal</span>
-                </button>
-              </li>
+              {(!user || isAdmin) && (
+                <li>
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-1 text-neutral-500 hover:text-orange-400 transition-colors cursor-pointer text-xs pt-1"
+                  >
+                    <Lock className="w-3 h-3" />
+                    <span>Admin Portal</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

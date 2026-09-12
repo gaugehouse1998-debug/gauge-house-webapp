@@ -72,14 +72,21 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     }
   };
 
-  // Distinct cities for filter dropdown
+  // Distinct cities for filter dropdown (strictly customer accounts only)
+  const sanitizedCustomers = useMemo(() => {
+    return (customers || []).filter((c) => {
+      const email = (c.email || '').toLowerCase().trim();
+      return email !== 'gaugehouse1998@gmail.com' && (c as any).role !== 'admin';
+    });
+  }, [customers]);
+
   const availableCities = useMemo(() => {
     const set = new Set<string>();
-    customers.forEach((c) => {
+    sanitizedCustomers.forEach((c) => {
       if (c.city && c.city.trim()) set.add(c.city.trim());
     });
     return Array.from(set).sort();
-  }, [customers]);
+  }, [sanitizedCustomers]);
 
   // Orders mapped by customerUid or email
   const customerOrdersMap = useMemo(() => {
@@ -106,7 +113,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   // Compute live order count and spend for each customer from real orders snapshot
   const enrichedCustomers = useMemo(() => {
-    return customers.map((c) => {
+    return sanitizedCustomers.map((c) => {
       const ordersByUid = customerOrdersMap.get(c.uid) || [];
       const ordersByEmail = c.email ? customerOrdersMap.get(c.email.toLowerCase().trim()) || [] : [];
       // Combine and deduplicate

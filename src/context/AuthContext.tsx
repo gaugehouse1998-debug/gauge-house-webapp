@@ -82,8 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       try {
         if (currentUser) {
-          await verifyAdmin(currentUser);
-          await syncProfile(currentUser);
+          const isAdm = await verifyAdmin(currentUser);
+          if (!isAdm) {
+            await syncProfile(currentUser);
+          } else {
+            setCustomerProfile(null);
+          }
         } else {
           setIsAdmin(false);
           setCustomerProfile(null);
@@ -171,6 +175,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     city?: string;
   }): Promise<void> => {
     const cleanEmail = data.email.trim().toLowerCase();
+    if (cleanEmail === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+      throw new Error('This email address is reserved for store administration. Please sign in via the Admin Portal.');
+    }
+
     const result = await createUserWithEmailAndPassword(auth, cleanEmail, data.password);
 
     if (data.name.trim()) {
@@ -189,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       city: data.city?.trim(),
     });
     setCustomerProfile(profile);
-    await verifyAdmin(result.user);
+    setIsAdmin(false);
   };
 
   const signOut = async () => {

@@ -73,18 +73,22 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
               <MessageSquare className="w-3.5 h-3.5" />
               <span>WhatsApp Inquiries</span>
             </button>
-            <span className="text-neutral-700">|</span>
-            {/* Discreet Admin Link */}
-            <button
-              onClick={() => handleNav('/admin')}
-              className={`flex items-center gap-1 transition-colors cursor-pointer ${
-                isAdmin ? 'text-orange-400 font-semibold' : 'text-neutral-400 hover:text-neutral-200'
-              }`}
-              title="Admin Portal"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>{isAdmin ? 'Admin Console' : 'Staff'}</span>
-            </button>
+            {/* Staff / Admin Link: strictly hidden from logged-in customer accounts */}
+            {(!user || isAdmin) && (
+              <>
+                <span className="text-neutral-700">|</span>
+                <button
+                  onClick={() => handleNav('/admin')}
+                  className={`flex items-center gap-1 transition-colors cursor-pointer ${
+                    isAdmin ? 'text-orange-400 font-semibold' : 'text-neutral-400 hover:text-neutral-200'
+                  }`}
+                  title="Staff Portal"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>{isAdmin ? 'Admin Console' : 'Staff'}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -331,12 +335,14 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
             >
               Customer Account / Login
             </button>
-            <button
-              onClick={() => handleNav('/admin')}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-orange-600 bg-orange-50"
-            >
-              Staff / Admin Portal
-            </button>
+            {(!user || isAdmin) && (
+              <button
+                onClick={() => handleNav('/admin')}
+                className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-orange-600 bg-orange-50"
+              >
+                {isAdmin ? 'Admin Console' : 'Staff / Admin Portal'}
+              </button>
+            )}
           </div>
 
           <div className="pt-4 border-t border-neutral-100 flex flex-col gap-2">
