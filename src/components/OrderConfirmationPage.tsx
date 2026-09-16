@@ -42,6 +42,10 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
       `*Phone:* ${order.customer.phone}`,
       `*City:* ${order.customer.city}`,
       order.customer.companyName ? `*Company:* ${order.customer.companyName}` : '',
+      `*Delivery Method:* ${order.deliveryMethod === 'local_cargo' ? 'Local Cargo Delivery' : 'Door-to-Door Delivery'} (${order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})`,
+      typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 ? `*Consignment Weight:* ${order.totalWeightKg.toFixed(2)} KG` : '',
+      typeof order.deliveryRatePerKg === 'number' && order.deliveryRatePerKg > 0 ? `*Delivery Rate:* ${formatPrice(order.deliveryRatePerKg)}/KG` : '',
+      order.deliveryTime ? `*Estimated Transit:* ${order.deliveryTime}` : '',
       `*Payment Method:* Advance Bank Transfer (1Link / Raast)`,
       order.transactionId ? `*Transaction ID (TID):* ${order.transactionId}` : '',
       order.paymentStatus ? `*Payment Status:* ${order.paymentStatus}` : '',
@@ -50,10 +54,11 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
         const variantText = it.selectedVariant?.attributes
           ? ` (${Object.entries(it.selectedVariant.attributes).map(([k, v]) => `${k}: ${v}`).join(', ')})`
           : '';
-        return `${idx + 1}. ${it.productTitle}${variantText} x ${it.quantity} = ${formatPrice(it.subtotal)}`;
+        const weightText = typeof it.weightKg === 'number' && it.weightKg > 0 ? ` [${(it.weightKg * it.quantity).toFixed(2)} KG]` : '';
+        return `${idx + 1}. ${it.productTitle}${variantText}${weightText} x ${it.quantity} = ${formatPrice(it.subtotal)}`;
       }),
       `\n*Subtotal:* ${formatPrice(order.subtotal)}`,
-      `*Shipping:* ${formatPrice(order.shipping)}`,
+      `*Shipping / Cargo:* ${formatPrice(order.shipping)}`,
       `*Grand Total:* ${formatPrice(order.total)}`,
       order.notes ? `*Notes:* ${order.notes}` : '',
     ].filter(Boolean).join('\n');
@@ -164,6 +169,20 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
               <p><strong>Address:</strong> {order.customer.address}</p>
               <p><strong>City:</strong> {order.customer.city}</p>
               <p>
+                <strong>Delivery Method:</strong>{' '}
+                <span className="font-semibold text-neutral-900">
+                  {order.deliveryMethod === 'local_cargo' ? 'Local Cargo Delivery' : 'Door-to-Door Delivery'}
+                  {' '}({order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})
+                </span>
+              </p>
+              {typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 && (
+                <p>
+                  <strong>Total Weight:</strong>{' '}
+                  <span className="font-mono font-bold text-neutral-900">{order.totalWeightKg.toFixed(2)} KG</span>
+                  {order.deliveryTime && <span className="text-neutral-500 font-sans"> • Estimated Transit: {order.deliveryTime}</span>}
+                </p>
+              )}
+              <p>
                 <strong>Payment Mode:</strong>{' '}
                 <span className="font-semibold text-neutral-900">
                   Advance Bank Transfer (1Link / Raast)
@@ -232,7 +251,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                 <span className="font-bold text-neutral-900">{formatPrice(order.subtotal)}</span>
               </div>
               <div className="flex justify-between text-neutral-600">
-                <span>Shipping:</span>
+                <span>Shipping ({order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Cargo' : 'Courier')}):</span>
                 <span className="font-bold text-neutral-900">{formatPrice(order.shipping)}</span>
               </div>
               <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm">

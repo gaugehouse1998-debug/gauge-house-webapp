@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingCart,
   Trash2,
@@ -9,21 +9,49 @@ import {
   ShieldCheck,
   Truck,
   Layers,
-  PackageOpen
+  PackageOpen,
+  Scale
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
+import { calculateCartTotalWeight, getAvailableDeliveryOptions } from '../utils/delivery';
+import { DeliveryMethodType } from '../types';
 
 interface CartPageProps {
   navigate: (route: string) => void;
 }
 
 export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
-  const { items, updateQuantity, removeItem, clearCart, subtotal, itemCount } = useCart();
+  const { items, updateQuantity, removeItem, clearCart, subtotal, itemCount, totalWeight: contextTotalWeight } = useCart();
   const { formatPrice, settings } = useStore();
 
+  const totalWeight = typeof contextTotalWeight === 'number' && contextTotalWeight >= 0
+    ? contextTotalWeight
+    : calculateCartTotalWeight(items);
+
+  const deliveryOptions = getAvailableDeliveryOptions(settings, totalWeight);
+
+  const [selectedMethod, setSelectedMethod] = useState<DeliveryMethodType>(() => {
+    try {
+      const saved = localStorage.getItem('gauge_house_preferred_delivery');
+      if (saved === 'local_cargo' || saved === 'door_to_door') {
+        return saved;
+      }
+    } catch {}
+    return 'door_to_door';
+  });
+
+  const activeOption = deliveryOptions.find((o) => o.method === selectedMethod) || deliveryOptions[0];
+
+  const handleSelectMethod = (m: DeliveryMethodType) => {
+    setSelectedMethod(m);
+    try {
+      localStorage.setItem('gauge_house_preferred_delivery', m);
+    } catch {}
+  };
+
   const isFreeShipping = subtotal >= settings.freeShippingThreshold && settings.freeShippingThreshold > 0;
-  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : settings.shippingFlatRate;
+  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : (activeOption?.fee ?? 0);
   const grandTotal = subtotal + shippingFee;
 
   return (
@@ -93,8 +121,13 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                           </div>
                         )}
 
-                        <div className="text-xs text-neutral-500 font-mono pt-1">
-                          SKU: <span className="font-semibold text-neutral-700">{item.sku}</span>
+                        <div className="text-xs text-neutral-500 font-mono pt-1 flex items-center gap-2 flex-wrap">
+                          <span>SKU: <span className="font-semibold text-neutral-700">{item.sku}</span></span>
+                          {typeof item.weightKg === 'number' && item.weightKg > 0 && (
+                            <span className="text-neutral-500 font-sans">
+                              • Weight: <strong className="text-neutral-700">{item.weightKg.toFixed(2)} KG</strong>/unit
+                            </span>
+                          )}
                         </div>
 
                         <div className="text-xs text-neutral-600 font-medium sm:hidden pt-1 flex items-center gap-1.5 flex-wrap">
@@ -194,8 +227,60 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                     <span className="font-bold text-neutral-900">{formatPrice(subtotal)}</span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span>Shipping / Delivery</span>
+                  {/* Consignment Total Weight */}
+                  <div className="flex justify-between items-center text-xs py-1 border-y border-neutral-100">
+                    <span className="flex items-center gap-1.5 text-neutral-600">
+                      <Scale className="w-3.5 h-3.5 text-neutral-500" />
+                      <span>Total Consignment Weight</span>
+                    </span>
+                    <span className="font-mono font-bold text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded">
+                      {totalWeight > 0 ? `${totalWeight.toFixed(2)} KG` : '0.00 KG'}
+                    </span>
+                  </div>
+
+                  {/* Delivery Options Selector */}
+                  <div className="pt-1">
+                    <span className="block text-xs font-bold text-neutral-800 mb-2">
+                      Delivery Method &amp; Cargo
+                    </span>
+                    <div className="space-y-2">
+                      {deliveryOptions.map((opt) => (
+                        <label
+                          key={opt.method}
+                          onClick={() => handleSelectMethod(opt.method)}
+                          className={`flex items-start justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                            selectedMethod === opt.method
+                              ? 'border-orange-500 bg-orange-50/50 ring-1 ring-orange-500'
+                              : 'border-neutral-200 bg-neutral-50/50 hover:bg-neutral-100'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="radio"
+                              name="cartDeliveryOption"
+                              checked={selectedMethod === opt.method}
+                              onChange={() => handleSelectMethod(opt.method)}
+                              className="mt-0.5 text-orange-600 focus:ring-orange-500"
+                            />
+                            <div>
+                              <span className="font-bold text-neutral-900 block">
+                                {opt.name} ({opt.label})
+                              </span>
+                              <span className="text-[11px] text-neutral-500 block">
+                                Rate: {formatPrice(opt.ratePerKg)}/KG • Transit: {opt.deliveryTime}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="font-bold text-neutral-900 shrink-0">
+                            {isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2">
+                    <span>Shipping Fee</span>
                     <span className="font-bold text-neutral-900">
                       {isFreeShipping ? (
                         <span className="text-emerald-600 font-extrabold">FREE Delivery</span>
@@ -214,7 +299,7 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                   <div className="border-t border-neutral-200 pt-3 flex justify-between items-baseline">
                     <div>
                       <span className="text-base font-extrabold text-neutral-900 block">Total Amount</span>
-                      <span className="text-[11px] text-neutral-400">Includes all line variants</span>
+                      <span className="text-[11px] text-neutral-400">Includes all line variants &amp; cargo</span>
                     </div>
                     <span className="text-2xl font-extrabold text-orange-600">
                       {formatPrice(grandTotal)}

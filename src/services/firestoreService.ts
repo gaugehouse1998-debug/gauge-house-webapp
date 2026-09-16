@@ -32,6 +32,7 @@ import {
   DEFAULT_BANNERS,
   SAMPLE_PRODUCTS
 } from '../data/defaults';
+import { calculateCartTotalWeight, calculateDeliveryFee } from '../utils/delivery';
 
 const SUPER_ADMIN_EMAIL = 'gaugehouse1998@gmail.com';
 
@@ -301,6 +302,67 @@ export async function createOrderInFirestore(
     const initialOrderStatus: OrderStatus =
       (orderData.orderStatus as OrderStatus) || 'payment_pending';
 
+    // Rate authority verification: obtain current admin delivery settings and calculate trusted shipping
+    let trustedSettings: StoreSettings = DEFAULT_STORE_SETTINGS;
+    try {
+      const settingsSnap = await getDoc(doc(db, 'settings', 'general'));
+      if (settingsSnap.exists()) {
+        trustedSettings = { ...DEFAULT_STORE_SETTINGS, ...settingsSnap.data() };
+      }
+    } catch (e) {
+      console.warn('Could not read admin settings for order verification, falling back to defaults', e);
+    }
+
+    // Verify item weights against catalog products if available
+    const validatedItems = await Promise.all(
+      (orderData.items || []).map(async (item) => {
+        let weightKg = typeof item.weightKg === 'number' && !isNaN(item.weightKg) && item.weightKg >= 0
+          ? item.weightKg
+          : 0;
+        if (item.productId) {
+          try {
+            const prodSnap = await getDoc(doc(db, 'products', item.productId));
+            if (prodSnap.exists()) {
+              const pData = prodSnap.data() as Product;
+              if (typeof pData.weightKg === 'number' && !isNaN(pData.weightKg) && pData.weightKg >= 0) {
+                weightKg = pData.weightKg;
+              }
+            }
+          } catch {
+            // Keep item.weightKg
+          }
+        }
+        return {
+          ...item,
+          weightKg: Math.round(weightKg * 100) / 100,
+        };
+      })
+    );
+
+    const trustedTotalWeightKg = calculateCartTotalWeight(validatedItems);
+
+    const deliveryMethod = orderData.deliveryMethod === 'local_cargo' ? 'local_cargo' : 'door_to_door';
+    let trustedRatePerKg = 500;
+    let trustedServiceName = 'TCS';
+    let trustedDeliveryTime = '2–3 Days';
+
+    if (deliveryMethod === 'local_cargo') {
+      trustedRatePerKg = Number(trustedSettings.localCargoRatePerKg) > 0 ? Number(trustedSettings.localCargoRatePerKg) : 300;
+      trustedServiceName = trustedSettings.localCargoName?.trim() || 'Local Cargo';
+      trustedDeliveryTime = trustedSettings.localCargoDeliveryTime?.trim() || '2–5 Days';
+    } else {
+      trustedRatePerKg = Number(trustedSettings.doorToDoorRatePerKg) > 0 ? Number(trustedSettings.doorToDoorRatePerKg) : 500;
+      trustedServiceName = trustedSettings.doorToDoorName?.trim() || 'TCS';
+      trustedDeliveryTime = trustedSettings.doorToDoorDeliveryTime?.trim() || '2–3 Days';
+    }
+
+    const isFreeShipping =
+      trustedSettings.freeShippingThreshold > 0 &&
+      orderData.subtotal >= trustedSettings.freeShippingThreshold;
+
+    const trustedShippingFee = isFreeShipping ? 0 : calculateDeliveryFee(trustedTotalWeightKg, trustedRatePerKg);
+    const trustedGrandTotal = orderData.subtotal + trustedShippingFee;
+
     const order: Order = cleanFirestoreData({
       ...orderData,
       id,
@@ -313,11 +375,19 @@ export async function createOrderInFirestore(
       customerAddress: (orderData.customer?.address || '').trim(),
       customerCity: (orderData.customer?.city || '').trim(),
       customerType,
-      totalAmount: orderData.total,
+      items: validatedItems,
+      deliveryMethod,
+      deliveryServiceName: trustedServiceName,
+      deliveryTime: trustedDeliveryTime,
+      totalWeightKg: trustedTotalWeightKg,
+      deliveryRatePerKg: trustedRatePerKg,
+      shipping: trustedShippingFee,
+      total: trustedGrandTotal,
+      totalAmount: trustedGrandTotal,
       paymentMethod,
       paymentStatus,
       transactionId: orderData.transactionId?.trim() || '',
-      paidAmount: orderData.paidAmount ?? (orderData.transactionId ? orderData.total : 0),
+      paidAmount: orderData.paidAmount ?? (orderData.transactionId ? trustedGrandTotal : 0),
       paymentProofUrl: orderData.paymentProofUrl || '',
       paymentSubmittedAt: orderData.transactionId ? now : '',
       paymentNotes: orderData.paymentNotes?.trim() || '',
@@ -339,7 +409,7 @@ export async function createOrderInFirestore(
         if (userSnap.exists()) {
           const prev = userSnap.data() as CustomerUser;
           const newOrderCount = (prev.orderCount || 0) + 1;
-          const newTotalSpend = (prev.totalSpend || 0) + orderData.total;
+          const newTotalSpend = (prev.totalSpend || 0) + trustedGrandTotal;
           await setDoc(
             userDocRef,
             cleanFirestoreData({

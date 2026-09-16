@@ -30,6 +30,7 @@ export interface Product {
   unit?: string;
   specifications: Record<string, string>;
   tags: string[];
+  weightKg?: number; // Weight of ONE product/piece in kilograms
   featured: boolean;
   published: boolean;
   variantDimensions?: VariantDimension[];
@@ -86,6 +87,7 @@ export interface CartItem {
   quantity: number;
   subtotal: number;
   maxStock: number;
+  weightKg?: number; // Weight of ONE piece in kilograms
 }
 
 export interface CustomerUser {
@@ -149,6 +151,8 @@ export interface PaymentAccount {
   updatedAt: string;
 }
 
+export type DeliveryMethodType = 'door_to_door' | 'local_cargo';
+
 export interface Order {
   id: string;
   orderNumber: string; // e.g. GH-2026-000123
@@ -168,6 +172,12 @@ export interface Order {
   totalAmount?: number; // alias for total
   status: OrderStatus | string;
   orderStatus?: OrderStatus;
+  // Delivery & Cargo Details (weight-based snapshot)
+  deliveryMethod?: DeliveryMethodType;
+  deliveryServiceName?: string;
+  deliveryTime?: string;
+  totalWeightKg?: number;
+  deliveryRatePerKg?: number;
   // Payment Details & TID Verification
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
@@ -205,8 +215,18 @@ export interface StoreSettings {
   emails: string[];
   currency: string;
   currencySymbol: string;
-  shippingFlatRate: number;
-  freeShippingThreshold: number;
+  shippingFlatRate: number; // legacy fallback
+  freeShippingThreshold: number; // legacy fallback
   whatsappNumber: string;
+  // Door-to-Door / Courier Delivery Settings
+  doorToDoorEnabled: boolean;
+  doorToDoorName: string;
+  doorToDoorRatePerKg: number;
+  doorToDoorDeliveryTime: string;
+  // Local Cargo Delivery Settings
+  localCargoEnabled: boolean;
+  localCargoName: string;
+  localCargoRatePerKg: number;
+  localCargoDeliveryTime: string;
   updatedAt?: string;
 }

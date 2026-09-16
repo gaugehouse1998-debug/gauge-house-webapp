@@ -35,7 +35,9 @@ import {
   Copy,
   CreditCard,
   X,
-  Check
+  Check,
+  Truck,
+  Scale
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
@@ -214,6 +216,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   // Settings form state
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(settings);
   const [settingsSavedMessage, setSettingsSavedMessage] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setSettingsForm((prev) => ({
+        ...settings,
+        ...prev,
+        doorToDoorEnabled: prev.doorToDoorEnabled ?? settings.doorToDoorEnabled ?? true,
+        doorToDoorName: prev.doorToDoorName || settings.doorToDoorName || 'TCS',
+        doorToDoorRatePerKg: prev.doorToDoorRatePerKg || settings.doorToDoorRatePerKg || 500,
+        doorToDoorDeliveryTime: prev.doorToDoorDeliveryTime || settings.doorToDoorDeliveryTime || '2–3 Days',
+        localCargoEnabled: prev.localCargoEnabled ?? settings.localCargoEnabled ?? true,
+        localCargoName: prev.localCargoName || settings.localCargoName || 'Local Cargo',
+        localCargoRatePerKg: prev.localCargoRatePerKg || settings.localCargoRatePerKg || 300,
+        localCargoDeliveryTime: prev.localCargoDeliveryTime || settings.localCargoDeliveryTime || '2–5 Days',
+      }));
+    }
+  }, [settings]);
 
   // Tools feedback
   const [toolsMessage, setToolsMessage] = useState<string | null>(null);
@@ -987,9 +1006,26 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   // Save Settings Handler
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveStoreSettingsInFirestore(settingsForm);
-    setSettingsSavedMessage(true);
-    setTimeout(() => setSettingsSavedMessage(false), 3000);
+    try {
+      const payload: StoreSettings = {
+        ...settings,
+        ...settingsForm,
+        doorToDoorEnabled: settingsForm.doorToDoorEnabled !== false,
+        doorToDoorName: settingsForm.doorToDoorName?.trim() || 'TCS',
+        doorToDoorRatePerKg: Number(settingsForm.doorToDoorRatePerKg) > 0 ? Number(settingsForm.doorToDoorRatePerKg) : 500,
+        doorToDoorDeliveryTime: settingsForm.doorToDoorDeliveryTime?.trim() || '2–3 Days',
+        localCargoEnabled: settingsForm.localCargoEnabled !== false,
+        localCargoName: settingsForm.localCargoName?.trim() || 'Local Cargo',
+        localCargoRatePerKg: Number(settingsForm.localCargoRatePerKg) > 0 ? Number(settingsForm.localCargoRatePerKg) : 300,
+        localCargoDeliveryTime: settingsForm.localCargoDeliveryTime?.trim() || '2–5 Days',
+      };
+      await saveStoreSettingsInFirestore(payload);
+      setSettingsSavedMessage(true);
+      showNotification('success', 'Store settings and delivery rates saved successfully!');
+      setTimeout(() => setSettingsSavedMessage(false), 3000);
+    } catch (err: any) {
+      showNotification('error', err?.message || 'Failed to save store settings.');
+    }
   };
 
   // Seeding tools handlers
@@ -1978,24 +2014,143 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">Flat Cargo / Delivery Fee (PKR)</label>
-                  <input
-                    type="number"
-                    value={settingsForm.shippingFlatRate}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, shippingFlatRate: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-lg"
-                  />
-                </div>
+                {/* Delivery Configuration */}
+                <div className="sm:col-span-2 pt-4 border-t border-neutral-200">
+                  <h4 className="text-sm font-bold text-neutral-900 flex items-center gap-2 mb-1">
+                    <Truck className="w-4 h-4 text-orange-600" />
+                    <span>Weight-Based Delivery &amp; Cargo Rates</span>
+                  </h4>
+                  <p className="text-xs text-neutral-500 mb-4">
+                    Set up customer delivery services, weight-based rates (PKR/KG), and estimated delivery transit times.
+                  </p>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1">Free Shipping Threshold (PKR)</label>
-                  <input
-                    type="number"
-                    value={settingsForm.freeShippingThreshold}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, freeShippingThreshold: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-lg"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* A. Door-to-Door / Courier Delivery */}
+                    <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/70 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
+                          Door-to-Door Delivery
+                        </span>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={settingsForm.doorToDoorEnabled !== false}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, doorToDoorEnabled: e.target.checked })
+                            }
+                            className="rounded border-neutral-300 text-orange-600 focus:ring-orange-500 w-4 h-4"
+                          />
+                          <span className="text-xs font-semibold text-neutral-700">
+                            {settingsForm.doorToDoorEnabled !== false ? 'Active' : 'Disabled'}
+                          </span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">Courier / Service Name</label>
+                        <input
+                          type="text"
+                          value={settingsForm.doorToDoorName || ''}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, doorToDoorName: e.target.value })}
+                          placeholder="e.g. TCS, Leopards, DHL"
+                          className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-600 mb-1">Rate per KG (PKR)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={settingsForm.doorToDoorRatePerKg ?? 500}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, doorToDoorRatePerKg: Number(e.target.value) })
+                            }
+                            placeholder="500"
+                            className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg font-semibold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-600 mb-1">Delivery Time</label>
+                          <input
+                            type="text"
+                            value={settingsForm.doorToDoorDeliveryTime || ''}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, doorToDoorDeliveryTime: e.target.value })
+                            }
+                            placeholder="2–3 Days"
+                            className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* B. Local Cargo Delivery */}
+                    <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/70 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
+                          Local Cargo Delivery
+                        </span>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={settingsForm.localCargoEnabled !== false}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, localCargoEnabled: e.target.checked })
+                            }
+                            className="rounded border-neutral-300 text-orange-600 focus:ring-orange-500 w-4 h-4"
+                          />
+                          <span className="text-xs font-semibold text-neutral-700">
+                            {settingsForm.localCargoEnabled !== false ? 'Active' : 'Disabled'}
+                          </span>
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-600 mb-1">Local Cargo Name</label>
+                        <input
+                          type="text"
+                          value={settingsForm.localCargoName || ''}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, localCargoName: e.target.value })}
+                          placeholder="e.g. Local Cargo, Daewoo Cargo"
+                          className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-600 mb-1">Rate per KG (PKR)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={settingsForm.localCargoRatePerKg ?? 300}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, localCargoRatePerKg: Number(e.target.value) })
+                            }
+                            placeholder="300"
+                            className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg font-semibold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-600 mb-1">Delivery Time</label>
+                          <input
+                            type="text"
+                            value={settingsForm.localCargoDeliveryTime || ''}
+                            onChange={(e) =>
+                              setSettingsForm({ ...settingsForm, localCargoDeliveryTime: e.target.value })
+                            }
+                            placeholder="2–5 Days"
+                            className="w-full px-3 py-2 text-xs bg-white border border-neutral-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2711,6 +2866,60 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               )}
             </div>
 
+            {/* Delivery & Cargo Audit Section */}
+            <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/80 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-orange-600" />
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-neutral-800">
+                    Delivery &amp; Cargo Details
+                  </h4>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-neutral-200 text-neutral-800">
+                  {inspectingOrder.deliveryMethod === 'local_cargo'
+                    ? 'Local Cargo Delivery'
+                    : 'Door-to-Door Delivery'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white p-3 rounded-lg border border-neutral-200 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block">Carrier / Service</span>
+                  <span className="font-bold text-neutral-900">
+                    {inspectingOrder.deliveryServiceName || (inspectingOrder.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block">Total Weight</span>
+                  <span className="font-mono font-bold text-neutral-900">
+                    {typeof inspectingOrder.totalWeightKg === 'number' && inspectingOrder.totalWeightKg > 0
+                      ? `${inspectingOrder.totalWeightKg.toFixed(2)} KG`
+                      : '0.00 KG'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block">Applied Rate</span>
+                  <span className="font-semibold text-neutral-800">
+                    {typeof inspectingOrder.deliveryRatePerKg === 'number' && inspectingOrder.deliveryRatePerKg > 0
+                      ? `${formatPrice(inspectingOrder.deliveryRatePerKg)} / KG`
+                      : 'Fixed / Legacy'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block">Transit Time</span>
+                  <span className="font-semibold text-neutral-800">
+                    {inspectingOrder.deliveryTime || (inspectingOrder.deliveryMethod === 'local_cargo' ? '2–5 Days' : '2–3 Days')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-neutral-500 block">Shipping Amount</span>
+                  <span className="font-bold text-orange-600">
+                    {formatPrice(inspectingOrder.shipping)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Items with Variants */}
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
@@ -2760,10 +2969,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               </div>
 
               <div className="text-right">
-                <span className="text-xs text-neutral-500 mr-2">Grand Total:</span>
-                <span className="font-extrabold text-orange-600 text-lg">
-                  {formatPrice(inspectingOrder.total)}
-                </span>
+                <div className="text-[11px] text-neutral-500 space-y-0.5 mb-1">
+                  <div>Subtotal: <span className="font-semibold text-neutral-800">{formatPrice(inspectingOrder.subtotal)}</span></div>
+                  <div>Delivery / Cargo: <span className="font-semibold text-neutral-800">{formatPrice(inspectingOrder.shipping)}</span></div>
+                </div>
+                <div>
+                  <span className="text-xs text-neutral-500 mr-2">Grand Total:</span>
+                  <span className="font-extrabold text-orange-600 text-lg">
+                    {formatPrice(inspectingOrder.total)}
+                  </span>
+                </div>
               </div>
             </div>
 

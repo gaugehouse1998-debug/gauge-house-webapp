@@ -21,6 +21,16 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   shippingFlatRate: 450,
   freeShippingThreshold: 20000,
   whatsappNumber: "923354499186",
+  // Door-to-Door / Courier Delivery Settings
+  doorToDoorEnabled: true,
+  doorToDoorName: "TCS",
+  doorToDoorRatePerKg: 500,
+  doorToDoorDeliveryTime: "2–3 Days",
+  // Local Cargo Delivery Settings
+  localCargoEnabled: true,
+  localCargoName: "Local Cargo",
+  localCargoRatePerKg: 300,
+  localCargoDeliveryTime: "2–5 Days",
 };
 
 export const OFFICIAL_CATEGORIES = [

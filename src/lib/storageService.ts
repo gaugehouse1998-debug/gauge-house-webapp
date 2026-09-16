@@ -140,27 +140,30 @@ export async function optimizeImage(
           }
           let dataUrl = canvas.toDataURL(outputMime, quality);
 
-          // Guarantee durable storage safety: if dataUrl exceeds 180KB, compress to ensure it never bloats Firestore
-          if (dataUrl.length > 180000 && width > 600) {
-            const downScaleRatio = 600 / width;
-            const downW = 600;
-            const downH = Math.round(height * downScaleRatio);
-            const downCanvas = document.createElement('canvas');
-            downCanvas.width = downW;
-            downCanvas.height = downH;
-            const downCtx = downCanvas.getContext('2d');
-            if (downCtx) {
-              downCtx.imageSmoothingEnabled = true;
-              downCtx.imageSmoothingQuality = 'high';
-              downCtx.drawImage(img, 0, 0, downW, downH);
-              const smallerBlob = await new Promise<Blob | null>((res) => {
-                downCanvas.toBlob((b) => res(b), 'image/webp', 0.72);
-              });
-              if (smallerBlob) {
-                blob = smallerBlob;
-                dataUrl = downCanvas.toDataURL('image/webp', 0.72);
-                width = downW;
-                height = downH;
+          // Guarantee durable storage safety: if dataUrl exceeds 280KB, compress to ensure it never bloats Firestore
+          if (dataUrl.length > 280000) {
+            const targetW = maxWidth >= 1200 ? 1200 : maxWidth >= 800 ? 800 : 600;
+            if (width > targetW) {
+              const downScaleRatio = targetW / width;
+              const downW = targetW;
+              const downH = Math.round(height * downScaleRatio);
+              const downCanvas = document.createElement('canvas');
+              downCanvas.width = downW;
+              downCanvas.height = downH;
+              const downCtx = downCanvas.getContext('2d');
+              if (downCtx) {
+                downCtx.imageSmoothingEnabled = true;
+                downCtx.imageSmoothingQuality = 'high';
+                downCtx.drawImage(img, 0, 0, downW, downH);
+                const smallerBlob = await new Promise<Blob | null>((res) => {
+                  downCanvas.toBlob((b) => res(b), 'image/webp', 0.72);
+                });
+                if (smallerBlob) {
+                  blob = smallerBlob;
+                  dataUrl = downCanvas.toDataURL('image/webp', 0.72);
+                  width = downW;
+                  height = downH;
+                }
               }
             }
           }
@@ -266,7 +269,7 @@ export async function uploadImageFile(
         setTimeout(() => {
           try { uploadTask.cancel(); } catch (_) {}
           reject(new Error('Firebase Storage timeout, switching to durable media fallback'));
-        }, 6000);
+        }, 25000);
       });
 
       const downloadUrl = await Promise.race([uploadPromise, timeoutPromise]);

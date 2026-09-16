@@ -41,6 +41,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const [salePrice, setSalePrice] = useState<number>(product?.salePrice || 0);
   const [stock, setStock] = useState<number>(product?.stock ?? 10);
   const [unit, setUnit] = useState(product?.unit || 'Piece');
+  const [weightKg, setWeightKg] = useState<number>(product?.weightKg ?? 0);
   const [description, setDescription] = useState(product?.description || '');
   const [published, setPublished] = useState(product?.published ?? true);
   const [featured, setFeatured] = useState(product?.featured ?? false);
@@ -282,6 +283,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         price: Number(price),
         stock: Number(stock),
         unit: unit.trim(),
+        weightKg: typeof weightKg === 'number' && !isNaN(weightKg) && weightKg > 0 ? Math.round(weightKg * 100) / 100 : 0,
         description: description.trim(),
         published,
         featured,
@@ -447,6 +449,24 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 placeholder="e.g. Piece, Set, Unit"
                 className="w-full px-3 py-2 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-lg focus:bg-white focus:outline-hidden"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-neutral-700 mb-1">
+                Product Weight (KG) <span className="text-neutral-400 font-normal">(Per Piece)</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={weightKg === 0 ? '' : weightKg}
+                onChange={(e) => setWeightKg(parseFloat(e.target.value) || 0)}
+                placeholder="e.g. 0.50, 1.25"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-neutral-50 border border-neutral-300 rounded-lg focus:bg-white focus:outline-hidden"
+              />
+              <p className="text-[11px] text-neutral-500 mt-1">
+                Enter the weight of ONE product/piece in kilograms.
+              </p>
             </div>
 
             <div className="sm:col-span-2 flex items-center gap-6 pt-2">

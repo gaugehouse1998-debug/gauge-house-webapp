@@ -18,13 +18,15 @@ import {
   Banknote,
   CreditCard,
   LogIn,
-  UserPlus
+  UserPlus,
+  Scale
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrderInFirestore } from '../services/firestoreService';
-import { Order, CustomerInfo, PaymentMethod } from '../types';
+import { Order, CustomerInfo, PaymentMethod, DeliveryMethodType } from '../types';
+import { calculateCartTotalWeight, getAvailableDeliveryOptions } from '../utils/delivery';
 
 interface CheckoutPageProps {
   navigate: (route: string) => void;
@@ -95,8 +97,30 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const totalWeight = calculateCartTotalWeight(items);
+  const deliveryOptions = getAvailableDeliveryOptions(settings, totalWeight);
+
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<DeliveryMethodType>(() => {
+    try {
+      const saved = localStorage.getItem('gauge_house_preferred_delivery');
+      if (saved === 'local_cargo' || saved === 'door_to_door') {
+        return saved;
+      }
+    } catch {}
+    return 'door_to_door';
+  });
+
+  const selectedDeliveryOption = deliveryOptions.find((o) => o.method === selectedDeliveryMethod) || deliveryOptions[0];
+
+  const handleSelectDeliveryMethod = (m: DeliveryMethodType) => {
+    setSelectedDeliveryMethod(m);
+    try {
+      localStorage.setItem('gauge_house_preferred_delivery', m);
+    } catch {}
+  };
+
   const isFreeShipping = subtotal >= settings.freeShippingThreshold && settings.freeShippingThreshold > 0;
-  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : settings.shippingFlatRate;
+  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : (selectedDeliveryOption?.fee ?? 0);
   const grandTotal = subtotal + shippingFee;
 
   if (items.length === 0) {
@@ -217,6 +241,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
         subtotal,
         shipping: shippingFee,
         total: grandTotal,
+        deliveryMethod: selectedDeliveryOption?.method || 'door_to_door',
+        deliveryServiceName: selectedDeliveryOption?.name || 'Courier Service',
+        deliveryTime: selectedDeliveryOption?.deliveryTime || '',
+        totalWeightKg: totalWeight,
+        deliveryRatePerKg: selectedDeliveryOption?.ratePerKg || 0,
         notes: customer.notes || '',
         paymentMethod,
         paymentStatus: isBank ? 'payment_pending' : 'unpaid',
@@ -543,6 +572,79 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                     />
                   </div>
 
+                  {/* ---------------- DELIVERY / CARGO METHOD SELECTION ---------------- */}
+                  <div className="sm:col-span-2 pt-4 border-t border-neutral-200 space-y-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-neutral-900 uppercase tracking-wider flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-orange-600" />
+                          <span>Delivery &amp; Cargo Method</span>
+                        </h3>
+                        <p className="text-xs text-neutral-500">
+                          Select your transit preference calculated by total consignment weight ({totalWeight.toFixed(2)} KG).
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200 text-xs font-mono font-bold text-neutral-800">
+                        <Scale className="w-3.5 h-3.5 text-orange-600" />
+                        <span>Consignment Weight: {totalWeight > 0 ? `${totalWeight.toFixed(2)} KG` : '0.00 KG'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {deliveryOptions.map((opt) => {
+                        const isSelected = selectedDeliveryMethod === opt.method;
+                        return (
+                          <label
+                            key={opt.method}
+                            onClick={() => handleSelectDeliveryMethod(opt.method)}
+                            className={`p-4 rounded-xl border text-xs cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                              isSelected
+                                ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-400/50 shadow-xs'
+                                : 'border-neutral-200 bg-neutral-50/60 hover:bg-neutral-100/80'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2.5">
+                                <input
+                                  type="radio"
+                                  name="checkoutDeliveryOption"
+                                  checked={isSelected}
+                                  onChange={() => handleSelectDeliveryMethod(opt.method)}
+                                  className="mt-0.5 text-orange-600 focus:ring-orange-500"
+                                />
+                                <div>
+                                  <span className="font-extrabold text-neutral-900 text-sm block">
+                                    {opt.name}
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-neutral-600 block">
+                                    {opt.label} • Estimated {opt.deliveryTime}
+                                  </span>
+                                  <span className="text-[11px] text-neutral-500 font-mono mt-0.5 block">
+                                    Weight Rate: {formatPrice(opt.ratePerKg)} / KG
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="font-extrabold text-neutral-900 text-sm block">
+                                  {isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
+                                </span>
+                                {isFreeShipping ? (
+                                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
+                                    Free Tier
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-neutral-400 block font-mono">
+                                    {totalWeight.toFixed(2)} KG × {formatPrice(opt.ratePerKg)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* ---------------- PAYMENT METHOD SELECTION ---------------- */}
                   <div className="sm:col-span-2 pt-4 border-t border-neutral-200 space-y-4">
                     <div>
@@ -784,6 +886,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                           <span>
                             Qty: <strong className="text-neutral-700">{item.quantity}</strong> × <strong className="text-neutral-800">{formatPrice(item.unitPrice)}</strong>
                           </span>
+                          {typeof item.weightKg === 'number' && item.weightKg > 0 && (
+                            <span className="text-neutral-500 font-mono ml-1.5">
+                              ({(item.weightKg * item.quantity).toFixed(2)} KG)
+                            </span>
+                          )}
                         </div>
                       </div>
                       <span className="font-bold text-neutral-900 shrink-0">
@@ -794,20 +901,41 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                 </div>
 
                 {/* Pricing Breakdown */}
-                <div className="border-t border-neutral-200 pt-4 space-y-2 text-xs">
+                <div className="border-t border-neutral-200 pt-4 space-y-2.5 text-xs">
                   <div className="flex justify-between text-neutral-600">
                     <span>Subtotal</span>
                     <span className="font-bold text-neutral-900">{formatPrice(subtotal)}</span>
                   </div>
 
-                  <div className="flex justify-between text-neutral-600">
-                    <span>Shipping Cargo / Courier</span>
-                    <span className="font-bold text-neutral-900">
-                      {isFreeShipping ? 'FREE Delivery' : formatPrice(shippingFee)}
+                  <div className="flex justify-between items-center text-neutral-600">
+                    <span className="flex items-center gap-1">
+                      <Scale className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>Consignment Weight</span>
+                    </span>
+                    <span className="font-mono font-bold text-neutral-800">
+                      {totalWeight > 0 ? `${totalWeight.toFixed(2)} KG` : '0.00 KG'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-neutral-600">
+                  <div className="flex justify-between items-start text-neutral-600">
+                    <div>
+                      <span className="block font-medium text-neutral-700">
+                        {selectedDeliveryOption?.name || 'Courier / Cargo'}
+                      </span>
+                      <span className="text-[11px] text-neutral-400 block">
+                        {selectedDeliveryOption?.deliveryTime} • {formatPrice(selectedDeliveryOption?.ratePerKg || 0)}/KG
+                      </span>
+                    </div>
+                    <span className="font-bold text-neutral-900">
+                      {isFreeShipping ? (
+                        <span className="text-emerald-600 font-extrabold">FREE Delivery</span>
+                      ) : (
+                        formatPrice(shippingFee)
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between text-neutral-600 pt-1">
                     <span>Payment Method</span>
                     <span className="font-bold text-orange-600">
                       Advance Bank Transfer

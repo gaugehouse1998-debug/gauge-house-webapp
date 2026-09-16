@@ -11,6 +11,7 @@ interface CartContextType {
   clearCart: () => void;
   itemCount: number;
   subtotal: number;
+  totalWeight: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const effectiveUnit = (item.discountPrice && item.discountPrice > 0) ? item.discountPrice : item.unitPrice;
         return {
           ...item,
+          weightKg: typeof item.weightKg === 'number' && !isNaN(item.weightKg) ? item.weightKg : 0,
           unitPrice: effectiveUnit,
           subtotal: calculateLineSubtotal(effectiveUnit, item.quantity),
         };
@@ -101,6 +103,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: variant.id,
             attributes: variant.attributes,
           } : undefined,
+          weightKg: typeof product.weightKg === 'number' && !isNaN(product.weightKg) ? product.weightKg : 0,
           unitPrice,
           regularPrice,
           discountPrice,
@@ -152,6 +155,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalWeight = Math.round(items.reduce((sum, item) => sum + ((item.weightKg || 0) * item.quantity), 0) * 100) / 100;
 
   return (
     <CartContext.Provider
@@ -164,6 +168,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearCart,
         itemCount,
         subtotal,
+        totalWeight,
       }}
     >
       {children}
