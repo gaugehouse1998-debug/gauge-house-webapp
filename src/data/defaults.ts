@@ -4,17 +4,12 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   storeName: "Gauge House",
   tagline: "Precision You Can Trust",
   businessType: "Industrial Equipment Supplier, Importer & Exporter",
-  address: "Al-Makkah Market-3, Dewan Street #42, Brandreth Road, Lahore – Pakistan",
+  address: "Pakistan (Nationwide Delivery via TCS Courier & Local Cargo)",
   phones: [
-    "0335-4499186",
-    "0300-8497778",
-    "042-37639090",
-    "042-37666688",
-    "042-37634777"
+    "0335-4499186"
   ],
   emails: [
-    "gaugehouse1998@gmail.com",
-    "Parus.k@hotmail.com"
+    "gaugehouse1998@gmail.com"
   ],
   currency: "PKR",
   currencySymbol: "Rs.",
@@ -485,6 +480,116 @@ export const SAMPLE_PRODUCTS = [
         sku: "GH-NV-12-FF",
         price: 2800,
         stock: 25,
+        enabled: true
+      }
+    ]
+  },
+  {
+    title: "Industrial 4-20mA Pressure Transmitter (Compact Series)",
+    slug: "industrial-4-20ma-pressure-transmitter-compact",
+    category: "Pressure Transmitters",
+    brand: "Gauge House",
+    sku: "GH-PT-420-COMP",
+    description: "Compact high-accuracy piezoresistive pressure transmitter providing standard two-wire 4-20mA analog output signal. Engineered for PLC, DCS, SCADA integration, hydraulics, water pump booster stations, and industrial automation across Pakistan.",
+    images: [
+      "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80"
+    ],
+    price: 8500,
+    salePrice: 7800,
+    stock: 24,
+    unit: "Piece",
+    specifications: {
+      "Brand": "Gauge House",
+      "Output Signal": "4-20 mA (Two-wire system)",
+      "Power Supply": "12-36 VDC (Standard 24VDC)",
+      "Accuracy": "± 0.5% Full Scale (± 0.25% optional)",
+      "Wetted Parts": "316L Stainless Steel diaphragm",
+      "Process Connection": "1/2\" NPT Male (or G 1/2 Male)",
+      "Electrical Connector": "Hirschmann DIN 43650A (IP65)",
+      "Operating Temperature": "-30°C to +85°C"
+    },
+    tags: ["transmitter", "4-20mA", "pressure transducer", "automation", "PLC"],
+    featured: true,
+    published: true,
+    isSample: true,
+    variantDimensions: [
+      {
+        name: "Pressure Range",
+        options: ["0–10 bar (150 psi)", "0–16 bar (230 psi)", "0–25 bar (350 psi)", "0–100 bar (1500 psi)"]
+      }
+    ],
+    variants: [
+      {
+        id: "pt1",
+        attributes: { "Pressure Range": "0–10 bar (150 psi)" },
+        sku: "GH-PT-10B-420",
+        price: 8500,
+        salePrice: 7800,
+        stock: 12,
+        enabled: true
+      },
+      {
+        id: "pt2",
+        attributes: { "Pressure Range": "0–16 bar (230 psi)" },
+        sku: "GH-PT-16B-420",
+        price: 8500,
+        salePrice: 7800,
+        stock: 12,
+        enabled: true
+      }
+    ]
+  },
+  {
+    title: "Electric Contact Pressure Gauge (Adjustable Limit Contacts)",
+    slug: "electric-contact-pressure-gauge-adjustable-limit-contacts",
+    category: "Electrical Contact Gauges",
+    brand: "Gauge House",
+    sku: "GH-EC-PG-100",
+    description: "Industrial dial pressure gauge equipped with magnetic snap-action electrical limit switches. Enables automated pump cut-off, compressor high/low alarm triggers, and safety interlocks in hydraulic and pneumatic circuits.",
+    images: [
+      "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80"
+    ],
+    price: 9500,
+    salePrice: 8800,
+    stock: 15,
+    unit: "Piece",
+    specifications: {
+      "Brand": "Gauge House",
+      "Dial Size": "4 inch (100mm)",
+      "Contact Type": "Magnetic Snap-Action Contacts (1NO + 1NC)",
+      "Contact Rating": "Maximum 30W / 50VA (220VAC)",
+      "Case Material": "SS 304 / Weatherproof Bayonet Ring",
+      "Wetted Parts": "SS 316 Stainless Steel",
+      "Accuracy": "± 1.6% Full Scale",
+      "Process Connection": "1/2\" NPT Bottom Connection"
+    },
+    tags: ["electric contact", "alarm", "limit switch", "pump control", "safety"],
+    featured: false,
+    published: true,
+    isSample: true,
+    variantDimensions: [
+      {
+        name: "Pressure Range",
+        options: ["0–10 bar (150 psi)", "0–16 bar (230 psi)", "0–25 bar (350 psi)"]
+      }
+    ],
+    variants: [
+      {
+        id: "ec1",
+        attributes: { "Pressure Range": "0–10 bar (150 psi)" },
+        sku: "GH-EC-10B-12NPT",
+        price: 9500,
+        salePrice: 8800,
+        stock: 8,
+        enabled: true
+      },
+      {
+        id: "ec2",
+        attributes: { "Pressure Range": "0–16 bar (230 psi)" },
+        sku: "GH-EC-16B-12NPT",
+        price: 9500,
+        salePrice: 8800,
+        stock: 7,
         enabled: true
       }
     ]

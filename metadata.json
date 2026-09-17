@@ -1,6 +1,6 @@
 {
   "name": "Gauge House — Precision Industrial Gauges & Equipment",
-  "description": "Online industrial product catalog & ordering system for precision gauges and industrial equipment.",
+  "description": "Gauge House: Industrial Equipment Supplier, Importer & Exporter in Pakistan. Online industrial catalog for precision pressure gauges, vacuum gauges, transmitters, and calibration instrumentation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

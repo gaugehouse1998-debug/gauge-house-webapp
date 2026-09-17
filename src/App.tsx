@@ -13,6 +13,9 @@ import { CheckoutPage } from './components/CheckoutPage';
 import { OrderConfirmationPage } from './components/OrderConfirmationPage';
 import { AccountPage } from './components/AccountPage';
 import { AdminPortal } from './components/admin/AdminPortal';
+import { GuidesPage } from './components/GuidesPage';
+import { GuideDetailPage } from './components/GuideDetailPage';
+import { INDUSTRIAL_GUIDES } from './data/guidesData';
 import { SearchModal } from './components/SearchModal';
 import { QuickViewModal } from './components/QuickViewModal';
 import { Product, Order } from './types';
@@ -285,8 +288,69 @@ function MainApp() {
       );
     }
 
-    // Default: Home Page: /
-    return <HomePage navigate={navigate} />;
+    // 9. Technical Guides Hub: /guides
+    if (currentRoute === '/guides' || currentRoute === '/guides/') {
+      return <GuidesPage navigate={navigate} />;
+    }
+
+    // 10. Technical Guide Detail: /guides/:slug
+    if (currentRoute.startsWith('/guides/')) {
+      const guideSlug = currentRoute.replace('/guides/', '').split('?')[0].replace(/\/+$/, '');
+      const guide = INDUSTRIAL_GUIDES.find((g) => g.slug === guideSlug);
+      if (guide) {
+        return <GuideDetailPage guide={guide} navigate={navigate} />;
+      }
+      return <GuidesPage navigate={navigate} />;
+    }
+
+    // 11. Clean Category alias (e.g. /pressure-gauges)
+    const cleanSlug = currentRoute.replace(/^\/+/, '').split('?')[0].replace(/\/+$/, '');
+    const matchedCategory = categories.find((c) => c.slug === cleanSlug);
+    if (matchedCategory) {
+      return <CatalogPage navigate={navigate} initialCategorySlug={matchedCategory.slug} />;
+    }
+
+    // 12. Nested category product alias (e.g. /pressure-gauges/100mm-pressure-gauge-bottom-connection)
+    if (cleanSlug.includes('/')) {
+      const parts = cleanSlug.split('/');
+      const potentialProductSlug = parts[parts.length - 1];
+      const matchedProduct = publishedProducts.find((p) => p.slug === potentialProductSlug);
+      if (matchedProduct) {
+        return <ProductDetailPage product={matchedProduct} navigate={navigate} />;
+      }
+    }
+
+    // 13. Homepage
+    if (currentRoute === '/' || currentRoute === '') {
+      return <HomePage navigate={navigate} />;
+    }
+
+    // 14. Real 404 Page (Avoid soft 404)
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center bg-white">
+        <div className="max-w-md w-full p-8 rounded-3xl border border-neutral-200 shadow-xs">
+          <span className="text-4xl font-extrabold text-orange-600 block mb-2 font-mono">404</span>
+          <h1 className="text-2xl font-black text-neutral-900 mb-2">Page Not Found</h1>
+          <p className="text-neutral-500 text-xs sm:text-sm mb-6 leading-relaxed">
+            The requested industrial product or specification page does not exist or has been relocated in our catalog.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate('/catalog')}
+              className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              Browse Complete Catalog
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const isAdminRoute = currentRoute === '/admin' || currentRoute.startsWith('/admin/');

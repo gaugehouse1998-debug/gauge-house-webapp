@@ -14,13 +14,24 @@ import {
   ArrowLeft,
   ChevronRight,
   ZoomIn,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  FileText
 } from 'lucide-react';
 import { Product, ProductVariant } from '../types';
 import { getItemPriceBreakdown, calculateLineSubtotal } from '../utils/pricing';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
 import { ProductCard } from './ProductCard';
+import { SEOHead } from './SEOHead';
+import { SEOLink } from './SEOLink';
+import {
+  generateProductSEO,
+  generateProductSchema,
+  generateBreadcrumbSchema,
+  generateFAQSchema,
+  slugify,
+} from '../utils/seo';
 
 interface StagedVariantLine {
   id: string; // local temporary id for the staged line
@@ -244,22 +255,64 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
 
   const hasDiscount = product.salePrice && product.salePrice > 0 && product.salePrice < product.price;
 
+  // Generate dynamic SEO metadata and Schema.org structured data
+  const seoMeta = useMemo(() => generateProductSEO(product), [product]);
+  const productSchema = useMemo(() => generateProductSchema(product), [product]);
+  const categorySlug = slugify(product.category);
+  const breadcrumbSchema = useMemo(() => generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Catalog', url: '/catalog' },
+    { name: product.category, url: `/category/${categorySlug}` },
+    { name: product.title, url: `/product/${product.slug}` },
+  ]), [product, categorySlug]);
+
+  const productFaqs = useMemo(() => [
+    {
+      question: `What are the primary applications of the ${product.title}?`,
+      answer: `${product.title} is designed for industrial process monitoring in petrochemical, textile, steam boilers, HVAC, water treatment, and manufacturing facilities across Pakistan requiring dependable accuracy.`,
+    },
+    {
+      question: `What are the specifications and wetted parts of this model?`,
+      answer: `This unit is manufactured with ${product.specifications?.['Wetted Parts'] || product.specifications?.['Case Material'] || 'premium industrial grade materials'} and calibrated for ${product.specifications?.['Pressure Range'] || 'specified operating ranges'} with standard ${product.specifications?.['Connection Size'] || 'process connection threads'}.`,
+    },
+    {
+      question: 'How does Gauge House deliver this product across Pakistan?',
+      answer: 'We dispatch from Brandreth Road, Lahore via TCS Courier (2–3 days door-to-door) or Local Cargo service (2–5 days) with insured packing to Lahore, Karachi, Faisalabad, Islamabad, Multan, and all industrial cities.',
+    },
+    {
+      question: 'Can company buyers request a formal GST / NTN quotation?',
+      answer: 'Yes. Gauge House provides formal proforma invoices, NTN/STRN tax documentation, and bulk corporate pricing for tenders and industrial maintenance contracts.',
+    },
+  ], [product]);
+
+  const faqSchema = useMemo(() => generateFAQSchema(productFaqs), [productFaqs]);
+  const combinedSchemas = useMemo(() => [productSchema, breadcrumbSchema, faqSchema], [productSchema, breadcrumbSchema, faqSchema]);
+
   return (
     <div className="bg-neutral-50 min-h-screen py-8">
+      <SEOHead
+        title={seoMeta.title}
+        description={seoMeta.description}
+        canonicalPath={`/product/${product.slug}`}
+        imageUrl={seoMeta.imageUrl}
+        type="product"
+        jsonLd={combinedSchemas}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-xs text-neutral-500 mb-6 flex-wrap">
-          <button onClick={() => navigate('/')} className="hover:text-orange-600 transition-colors">
+        <nav className="flex items-center gap-2 text-xs text-neutral-500 mb-6 flex-wrap" aria-label="Breadcrumb">
+          <SEOLink to="/" navigate={navigate} className="hover:text-orange-600 transition-colors">
             Home
-          </button>
+          </SEOLink>
           <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
-          <button onClick={() => navigate('/catalog')} className="hover:text-orange-600 transition-colors">
+          <SEOLink to="/catalog" navigate={navigate} className="hover:text-orange-600 transition-colors">
             Catalog
-          </button>
+          </SEOLink>
           <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
-          <button onClick={() => navigate(`/category/${product.category.toLowerCase().replace(/\s+/g, '-')}`)} className="hover:text-orange-600 transition-colors">
+          <SEOLink to={`/category/${categorySlug}`} navigate={navigate} className="hover:text-orange-600 transition-colors">
             {product.category}
-          </button>
+          </SEOLink>
           <ChevronRight className="w-3.5 h-3.5 text-neutral-400" />
           <span className="text-neutral-900 font-semibold truncate max-w-xs">{product.title}</span>
         </nav>
@@ -694,6 +747,48 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
               </div>
             </div>
           )}
+
+          {/* ========================================================= */}
+          {/* PRODUCT FAQ & ORDERING ASSISTANCE (CRAWLABLE & AI-READY) */}
+          {/* ========================================================= */}
+          <div className="border-t border-neutral-200 p-6 sm:p-8 lg:p-10 bg-white">
+            <div className="max-w-3xl">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-600 mb-2">
+                <HelpCircle className="w-4 h-4" />
+                <span>Technical & Procurement FAQ</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-neutral-900 mb-4">
+                Frequently Asked Questions for {product.title}
+              </h2>
+              <div className="space-y-4">
+                {productFaqs.map((faq, idx) => (
+                  <div key={idx} className="bg-neutral-50 rounded-xl p-4 sm:p-5 border border-neutral-200/70">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-1.5 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0" />
+                      {faq.question}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed pl-3.5">
+                      {faq.answer}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Engineering Consultation Callout */}
+              <div className="mt-6 p-4 rounded-xl bg-orange-50/70 border border-orange-200 flex items-center justify-between gap-4 flex-wrap">
+                <div className="text-xs text-neutral-700">
+                  <span className="font-bold block text-neutral-900">Need a custom range, dial face, or calibration certificate?</span>
+                  Our technical engineering desk at Brandreth Road, Lahore can assist with non-standard process requirements.
+                </div>
+                <button
+                  onClick={handleWhatsAppShare}
+                  className="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-all cursor-pointer shrink-0"
+                >
+                  Consult Technical Desk
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Related Products Section */}
@@ -708,12 +803,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
                   Other industrial instruments in {product.category}
                 </p>
               </div>
-              <button
-                onClick={() => navigate('/catalog')}
-                className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer"
+              <SEOLink
+                to="/catalog"
+                navigate={navigate}
+                className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors"
               >
                 View All Catalog →
-              </button>
+              </SEOLink>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

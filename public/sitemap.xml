@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- Homepage -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Complete Industrial Product Catalog -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/catalog</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Technical Engineering Guides Hub -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Engineering Guide: Selection Guide Pakistan -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/industrial-pressure-gauge-selection-guide-pakistan</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Engineering Guide: Bourdon Tube vs Diaphragm vs Capsule -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/bourdon-tube-vs-diaphragm-vs-capsule-pressure-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Engineering Guide: 4-20mA Pressure Transmitter Calibration -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/pressure-transmitter-4-20ma-calibration-guide</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Pressure Gauges -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/pressure-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Vacuum Gauges -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/vacuum-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Temperature Gauges -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/temperature-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Transmitters -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/transmitters</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Digital Gauges -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/digital-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Valves & Manifolds -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/valves-manifolds</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Category: Accessories -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/accessories</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+  </url>
+</urlset>

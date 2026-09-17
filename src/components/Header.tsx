@@ -10,11 +10,13 @@ import {
   MessageSquare,
   Gauge,
   User,
-  ChevronDown
+  ChevronDown,
+  BookOpen
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../context/AuthContext';
+import { SEOLink } from './SEOLink';
 
 interface HeaderProps {
   currentRoute: string;
@@ -97,8 +99,9 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Brand Logo */}
-          <div
-            onClick={() => handleNav('/')}
+          <SEOLink
+            to="/"
+            navigate={handleNav}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
             <div className="w-11 h-11 rounded-lg bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/20 group-hover:bg-orange-700 transition-colors">
@@ -114,31 +117,33 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
                 {settings.tagline || 'Precision You Can Trust'}
               </p>
             </div>
-          </div>
+          </SEOLink>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
-            <button
-              onClick={() => handleNav('/')}
-              className={`font-semibold text-sm transition-colors cursor-pointer ${
+            <SEOLink
+              to="/"
+              navigate={handleNav}
+              className={`font-semibold text-sm transition-colors ${
                 currentRoute === '/'
                   ? 'text-orange-600'
                   : 'text-neutral-700 hover:text-orange-600'
               }`}
             >
               Home
-            </button>
+            </SEOLink>
 
-            <button
-              onClick={() => handleNav('/catalog')}
-              className={`font-semibold text-sm transition-colors cursor-pointer ${
+            <SEOLink
+              to="/catalog"
+              navigate={handleNav}
+              className={`font-semibold text-sm transition-colors ${
                 currentRoute.startsWith('/catalog')
                   ? 'text-orange-600'
                   : 'text-neutral-700 hover:text-orange-600'
               }`}
             >
               All Products
-            </button>
+            </SEOLink>
 
             {/* Categories Dropdown */}
             <div className="relative group">
@@ -168,19 +173,20 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
                   <div className="max-h-80 overflow-y-auto py-1">
                     {activeCategories.length > 0 ? (
                       activeCategories.map((cat) => (
-                        <button
+                        <SEOLink
                           key={cat.id}
-                          onClick={() => {
+                          to={`/category/${cat.slug}`}
+                          navigate={(route) => {
                             setCategoryDropdownOpen(false);
-                            handleNav(`/category/${cat.slug}`);
+                            handleNav(route);
                           }}
-                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors cursor-pointer flex items-center justify-between group/item"
+                          className="w-full text-left px-4 py-2.5 text-xs font-semibold text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors cursor-pointer flex items-center justify-between group/item block"
                         >
                           <span>{cat.name}</span>
                           <span className="text-[10px] text-neutral-400 group-hover/item:text-orange-600 transition-colors">
                             Explore →
                           </span>
-                        </button>
+                        </SEOLink>
                       ))
                     ) : (
                       <div className="px-4 py-3 text-xs text-neutral-500">
@@ -190,19 +196,34 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
                   </div>
 
                   <div className="border-t border-neutral-100 mt-1 pt-1.5 px-2">
-                    <button
-                      onClick={() => {
+                    <SEOLink
+                      to="/catalog"
+                      navigate={(route) => {
                         setCategoryDropdownOpen(false);
-                        handleNav('/catalog');
+                        handleNav(route);
                       }}
-                      className="w-full text-center py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 rounded-xl transition-colors cursor-pointer"
+                      className="w-full text-center py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 rounded-xl transition-colors block"
                     >
                       Browse All Categories & Products →
-                    </button>
+                    </SEOLink>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Technical Guides Link */}
+            <SEOLink
+              to="/guides"
+              navigate={handleNav}
+              className={`font-semibold text-sm transition-colors flex items-center gap-1.5 ${
+                currentRoute.startsWith('/guides')
+                  ? 'text-orange-600'
+                  : 'text-neutral-700 hover:text-orange-600'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-orange-600" />
+              <span>Technical Guides</span>
+            </SEOLink>
 
             <button
               onClick={() => handleNav('/#why-gauge-house')}
@@ -280,14 +301,25 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
             >
               Home
             </button>
-            <button
-              onClick={() => handleNav('/catalog')}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold ${
+            <SEOLink
+              to="/catalog"
+              navigate={handleNav}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold block ${
                 currentRoute.startsWith('/catalog') ? 'bg-orange-50 text-orange-600' : 'text-neutral-800'
               }`}
             >
               All Products Catalog
-            </button>
+            </SEOLink>
+            <SEOLink
+              to="/guides"
+              navigate={handleNav}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                currentRoute.startsWith('/guides') ? 'bg-orange-50 text-orange-600' : 'text-neutral-800'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-orange-600" />
+              <span>Technical Guides</span>
+            </SEOLink>
             <div className="pt-3 pb-1 px-3 flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
                 Browse Categories
@@ -300,10 +332,11 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
               {activeCategories.map((cat) => {
                 const isCurrent = currentRoute === `/category/${cat.slug}`;
                 return (
-                  <button
+                  <SEOLink
                     key={cat.id}
-                    onClick={() => handleNav(`/category/${cat.slug}`)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                    to={`/category/${cat.slug}`}
+                    navigate={handleNav}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors block ${
                       isCurrent
                         ? 'bg-orange-600 text-white shadow-xs'
                         : 'text-neutral-700 hover:bg-orange-50 hover:text-orange-600'
@@ -313,7 +346,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRoute, navigate, onOpenSe
                     <span className={`text-[10px] ${isCurrent ? 'text-orange-200' : 'text-neutral-400'}`}>
                       View →
                     </span>
-                  </button>
+                  </SEOLink>
                 );
               })}
             </div>

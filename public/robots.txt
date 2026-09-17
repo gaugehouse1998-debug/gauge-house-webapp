@@ -1,0 +1,37 @@
+# ==============================================================================
+# Robots.txt for Gauge House
+# Website: https://gaugehouse1998-debug.github.io/gauge-house-webapp/
+# Address: Brandreth Road, Lahore, Pakistan
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /catalog
+Allow: /category/*
+Allow: /product/*
+Allow: /guides
+Allow: /guides/*
+
+# Prevent indexing of administrative and session paths
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /checkout
+Disallow: /order-confirmation
+Disallow: /account
+
+# Search engine crawlers specific directives
+User-agent: Googlebot
+Allow: /
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+Allow: /*.svg$
+
+User-agent: Googlebot-Image
+Allow: /
+
+# XML Sitemap
+Sitemap: https://gaugehouse1998-debug.github.io/gauge-house-webapp/sitemap.xml

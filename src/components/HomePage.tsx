@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Gauge,
   ShieldCheck,
@@ -11,10 +11,17 @@ import {
   Layers,
   MapPin,
   Clock,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  HelpCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from './ProductCard';
+import { SEOHead } from './SEOHead';
+import { SEOLink } from './SEOLink';
+import { generateLocalBusinessSchema, generateFAQSchema, BASE_URL } from '../utils/seo';
+import { INDUSTRIAL_GUIDES } from '../data/guidesData';
 
 interface HomePageProps {
   navigate: (route: string) => void;
@@ -41,8 +48,51 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
   };
 
+  const homeFaqs = useMemo(() => [
+    {
+      question: 'Where is Gauge House located in Pakistan?',
+      answer: 'Gauge House is centrally located in Pakistan’s premier industrial market at Al-Makkah Market-3, Dewan Street #42, Brandreth Road, Lahore. We provide direct showroom collection and nationwide courier dispatch.',
+    },
+    {
+      question: 'Do you deliver pressure gauges and instrumentation across Pakistan?',
+      answer: 'Yes, Gauge House delivers certified industrial instruments nationwide including Karachi, Lahore, Faisalabad, Islamabad, Rawalpindi, Multan, Gujranwala, Sialkot, and Peshawar via TCS express courier and heavy freight cargo.',
+    },
+    {
+      question: 'What types of pressure and temperature gauges do you supply?',
+      answer: 'We supply Bourdon tube pressure gauges (dry & glycerin filled, 2.5", 4", 6" dials, ranges from -1 bar vacuum to 1000 bar), stainless steel pressure transmitters (4-20mA), bimetallic temperature gauges, differential pressure gauges, and WIKA German instrumentation.',
+    },
+    {
+      question: 'Can corporate clients get NTN tax invoices and calibration support?',
+      answer: 'Yes, Gauge House issues formal computer-generated NTN tax proforma invoices, sales tax invoices, and coordinates manufacturer calibration testing for corporate and industrial EPC clients.',
+    },
+  ], []);
+
+  const websiteSchema = useMemo(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Gauge House',
+    url: BASE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${BASE_URL}/#/catalog?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  }), []);
+
+  const localBusinessSchema = useMemo(() => generateLocalBusinessSchema(), []);
+  const faqSchema = useMemo(() => generateFAQSchema(homeFaqs), [homeFaqs]);
+
+  const homeSchemas = useMemo(() => [websiteSchema, localBusinessSchema, faqSchema], [websiteSchema, localBusinessSchema, faqSchema]);
+
   return (
     <div className="bg-neutral-50 min-h-screen">
+      <SEOHead
+        title="Industrial Pressure Gauges, Transmitters & Instrumentation | Gauge House Pakistan"
+        description="Gauge House is Pakistan's leading industrial instrumentation supplier based in Brandreth Road, Lahore. Stocking certified pressure gauges, transmitters, temperature gauges, and WIKA products."
+        canonicalPath="/"
+        jsonLd={homeSchemas}
+      />
+
       {/* ========================================================= */}
       {/* 1. HERO SECTION */}
       {/* ========================================================= */}
@@ -75,13 +125,14 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
 
               {/* Action CTAs */}
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  onClick={() => navigate('/catalog')}
+                <SEOLink
+                  to="/catalog"
+                  navigate={navigate}
                   className="px-6 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
                 >
                   <span>{activeBanner?.ctaText || 'Explore Full Catalog'}</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </SEOLink>
 
                 <button
                   onClick={handleWhatsApp}
@@ -225,26 +276,28 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                 Product Categories
               </h2>
             </div>
-            <button
-              onClick={() => navigate('/catalog')}
-              className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors cursor-pointer"
+            <SEOLink
+              to="/catalog"
+              navigate={navigate}
+              className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
             >
               <span>View All Categories</span>
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </SEOLink>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {activeCategories.map((cat) => (
-              <div
+              <SEOLink
                 key={cat.id}
-                onClick={() => navigate(`/category/${cat.slug}`)}
-                className="group relative bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-orange-500 transition-all cursor-pointer flex flex-col justify-between"
+                to={`/category/${cat.slug}`}
+                navigate={navigate}
+                className="group relative bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs hover:shadow-lg hover:border-orange-500 transition-all cursor-pointer flex flex-col justify-between block"
               >
                 <div className="aspect-4/3 w-full bg-neutral-100 overflow-hidden relative">
                   <img
                     src={cat.image || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'}
-                    alt={cat.name}
+                    alt={`${cat.name} - Industrial Gauges Pakistan`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
                   />
@@ -264,7 +317,7 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
-              </div>
+              </SEOLink>
             ))}
           </div>
         </div>
@@ -285,13 +338,14 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                   Featured Products
                 </h2>
               </div>
-              <button
-                onClick={() => navigate('/catalog')}
-                className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors cursor-pointer"
+              <SEOLink
+                to="/catalog"
+                navigate={navigate}
+                className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
               >
                 <span>Browse Full Catalog</span>
                 <ChevronRight className="w-4 h-4" />
-              </button>
+              </SEOLink>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -308,7 +362,104 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
       )}
 
       {/* ========================================================= */}
-      {/* 5. SHOWROOM & CONTACT / INQUIRY SECTION */}
+      {/* 5. TECHNICAL ENGINEERING GUIDES SECTION (SEO & TOPICAL AUTHORITY) */}
+      {/* ========================================================= */}
+      <section className="py-16 bg-neutral-50 border-b border-neutral-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-600 mb-1">
+                <BookOpen className="w-4 h-4" />
+                <span>Technical Knowledge & Selection Standards</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+                Industrial Instrumentation Engineering Guides
+              </h2>
+              <p className="text-xs sm:text-sm text-neutral-500 mt-1 max-w-2xl">
+                Written by instrumentation specialists at Brandreth Road, Lahore to help plant engineers, maintenance managers, and procurement officers select the right gauges.
+              </p>
+            </div>
+            <SEOLink
+              to="/guides"
+              navigate={navigate}
+              className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors shrink-0"
+            >
+              <span>Explore All Guides</span>
+              <ChevronRight className="w-4 h-4" />
+            </SEOLink>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {INDUSTRIAL_GUIDES.map((guide) => (
+              <SEOLink
+                key={guide.slug}
+                to={`/guides/${guide.slug}`}
+                navigate={navigate}
+                className="group bg-white rounded-2xl border border-neutral-200/90 overflow-hidden hover:border-orange-500 hover:shadow-lg transition-all flex flex-col justify-between block"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md">
+                      {guide.category}
+                    </span>
+                    <span className="text-xs text-neutral-400 font-mono">
+                      {guide.readTime}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-neutral-900 group-hover:text-orange-600 transition-colors mb-2 leading-snug">
+                    {guide.title}
+                  </h3>
+                  <p className="text-xs text-neutral-600 line-clamp-3 leading-relaxed">
+                    {guide.summary}
+                  </p>
+                </div>
+
+                <div className="px-6 py-3.5 bg-neutral-50/80 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-neutral-700 group-hover:text-orange-600 transition-colors">
+                  <span>Read Engineering Guide</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </SEOLink>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 6. HOME FREQUENTLY ASKED QUESTIONS (SEARCH-INTENT OPTIMIZED) */}
+      {/* ========================================================= */}
+      <section className="py-16 bg-white border-b border-neutral-200">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold uppercase tracking-wider mb-2">
+              <HelpCircle className="w-4 h-4 text-orange-600" />
+              <span>Questions & Answers</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900">
+              Procurement & Supply Frequently Asked Questions
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+              Common questions about ordering industrial pressure gauges, transmitters, and delivery across Pakistan.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {homeFaqs.map((faq, idx) => (
+              <div key={idx} className="bg-neutral-50 rounded-2xl p-5 sm:p-6 border border-neutral-200/80">
+                <h3 className="text-sm sm:text-base font-bold text-neutral-900 mb-2 flex items-start gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-600 mt-2 shrink-0" />
+                  <span>{faq.question}</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed pl-4.5">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================= */}
+      {/* 7. SHOWROOM & CONTACT / INQUIRY SECTION */}
       {/* ========================================================= */}
       <section id="contact" className="py-16 bg-neutral-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

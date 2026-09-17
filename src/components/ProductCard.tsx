@@ -3,6 +3,7 @@ import { ShoppingCart, Eye, Check, Layers, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
+import { SEOLink } from './SEOLink';
 
 interface ProductCardProps {
   product: Product;
@@ -32,10 +33,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (isOutOfStock) return;
 
     if (hasVariants) {
-      // If product has variants, navigate to detail page so user can choose desired variant(s)
       onNavigate(product.slug);
     } else {
       addItem(product, 1);
@@ -44,13 +45,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
     }
   };
 
+  const imageAlt = `${product.title} - ${product.brand || 'Industrial'} ${product.category} - Gauge House Pakistan`;
+
   return (
     <div
       onClick={() => onNavigate(product.slug)}
       className="group bg-white rounded-xl border border-neutral-200/90 overflow-hidden hover:border-orange-400/80 hover:shadow-lg transition-all duration-200 flex flex-col justify-between cursor-pointer relative"
     >
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full bg-neutral-50 overflow-hidden">
+      <SEOLink
+        to={`/product/${product.slug}`}
+        onClick={(e) => {
+          e.preventDefault();
+          onNavigate(product.slug);
+        }}
+        className="relative aspect-square w-full bg-neutral-50 overflow-hidden block"
+      >
         {/* Badges */}
         <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 items-start">
           {isOutOfStock ? (
@@ -78,7 +88,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
         {/* Product Image */}
         <img
           src={imgError ? FALLBACK_IMAGE : imgSrc}
-          alt={product.title}
+          alt={imageAlt}
           loading="lazy"
           referrerPolicy="no-referrer"
           onError={() => {
@@ -93,15 +103,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
           <button
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onQuickView(product);
             }}
-            className="hidden sm:flex absolute bottom-2.5 right-2.5 p-2 rounded-full bg-white/95 hover:bg-white text-neutral-700 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer items-center justify-center hover:text-orange-600"
+            className="hidden sm:flex absolute bottom-2.5 right-2.5 p-2 rounded-full bg-white/95 hover:bg-white text-neutral-700 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer items-center justify-center hover:text-orange-600 z-10"
             title="Quick View"
           >
             <Eye className="w-4 h-4" />
           </button>
         )}
-      </div>
+      </SEOLink>
 
       {/* Content */}
       <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between">
@@ -116,7 +127,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
 
           {/* Title */}
           <h3 className="font-semibold text-sm sm:text-base text-neutral-900 group-hover:text-orange-600 line-clamp-2 transition-colors mb-1.5 leading-snug">
-            {product.title}
+            <SEOLink
+              to={`/product/${product.slug}`}
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate(product.slug);
+              }}
+              className="hover:underline"
+            >
+              {product.title}
+            </SEOLink>
           </h3>
 
           {/* Spec preview if exists */}

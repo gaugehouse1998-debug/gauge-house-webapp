@@ -11,10 +11,16 @@ import {
   ArrowUpDown,
   FolderTree,
   Gauge,
-  ArrowRight
+  ArrowRight,
+  HelpCircle,
+  ShieldCheck,
+  Truck
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from './ProductCard';
+import { SEOHead } from './SEOHead';
+import { SEOLink } from './SEOLink';
+import { generateBreadcrumbSchema, generateFAQSchema, slugify, BASE_URL } from '../utils/seo';
 
 interface CatalogPageProps {
   navigate: (route: string) => void;
@@ -149,27 +155,124 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
     selectedBrand !== 'all' ||
     inStockOnly;
 
+  // Active category object and SEO data
+  const currentCategoryObj = useMemo(() => {
+    if (selectedCategory === 'all') return null;
+    return activeCategories.find((c) => c.name === selectedCategory) || null;
+  }, [selectedCategory, activeCategories]);
+
+  const activeCategorySlug = currentCategoryObj?.slug || slugify(selectedCategory);
+
+  const categorySEO = useMemo(() => {
+    if (selectedCategory !== 'all') {
+      return {
+        title: `${selectedCategory} Supplier in Pakistan | Gauge House`,
+        description: `Explore certified ${selectedCategory.toLowerCase()} from Gauge House Pakistan. Ready stock in Lahore with fast delivery to Karachi, Faisalabad, and nationwide.`,
+        canonicalPath: `/category/${activeCategorySlug}`,
+      };
+    }
+    return {
+      title: 'Industrial Gauges, Transmitters & Instrumentation Catalog | Gauge House Pakistan',
+      description: `Browse ${publishedProducts.length}+ precision pressure gauges, temperature gauges, pressure transmitters, and WIKA instrumentation ready for immediate dispatch across Pakistan.`,
+      canonicalPath: '/catalog',
+    };
+  }, [selectedCategory, activeCategorySlug, publishedProducts.length]);
+
+  const breadcrumbsList = useMemo(() => {
+    const list = [
+      { name: 'Home', url: '/' },
+      { name: 'Catalog', url: '/catalog' },
+    ];
+    if (selectedCategory !== 'all') {
+      list.push({ name: selectedCategory, url: `/category/${activeCategorySlug}` });
+    }
+    return list;
+  }, [selectedCategory, activeCategorySlug]);
+
+  const breadcrumbSchema = useMemo(() => generateBreadcrumbSchema(breadcrumbsList), [breadcrumbsList]);
+
+  const categoryFaqs = useMemo(() => {
+    if (selectedCategory === 'Pressure Gauges') {
+      return [
+        {
+          question: 'What dial sizes and ranges of pressure gauges does Gauge House stock in Pakistan?',
+          answer: 'We stock standard 2.5 inch (63mm), 4 inch (100mm), and 6 inch (150mm) dial sizes from compound vacuum (-1 to 0 bar) up to 1000 bar (15,000 PSI) with SS304/SS316 wetted parts.',
+        },
+        {
+          question: 'Are glycerin filled pressure gauges available?',
+          answer: 'Yes, we supply glycerin filled and silicone filled pressure gauges for pumps, compressors, and high vibration lines, as well as dry gauges for standard service.',
+        },
+        {
+          question: 'How are orders dispatched to Karachi, Multan, or Faisalabad?',
+          answer: 'Orders are packed securely and dispatched same-day via TCS courier (2–3 days) or local cargo services (2–5 days) with complete tracking.',
+        },
+      ];
+    } else if (selectedCategory === 'Pressure Transmitters') {
+      return [
+        {
+          question: 'What output signals are standard on your pressure transmitters?',
+          answer: 'Our standard industrial pressure transmitters output a 2-wire 4-20mA current loop (standard DIN 43650 Hirschmann plug) or optional 0-10V DC for PLC/SCADA integration.',
+        },
+        {
+          question: 'Can these pressure transmitters be used with steam or aggressive chemicals?',
+          answer: 'Yes, models with SS 316L diaphragms withstand corrosive chemicals, and when paired with pigtail syphons, are suitable for high temperature steam.',
+        },
+      ];
+    }
+    return [
+      {
+        question: 'Does Gauge House provide GST invoices and NTN tax compliance for industrial orders?',
+        answer: 'Yes, Gauge House provides verified commercial proforma invoices, sales tax/GST receipts, and technical datasheets for all corporate purchases.',
+      },
+      {
+        question: 'How do I place an order or request an industrial quotation?',
+        answer: 'You can order directly online through our cart, or message our technical engineering team on WhatsApp (0335-4499186) for instant proforma quotes.',
+      },
+    ];
+  }, [selectedCategory]);
+
+  const faqSchema = useMemo(() => generateFAQSchema(categoryFaqs), [categoryFaqs]);
+
+  const collectionSchema = useMemo(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: categorySEO.title,
+    description: categorySEO.description,
+    url: `${BASE_URL}${categorySEO.canonicalPath}`,
+    numberOfItems: filteredProducts.length,
+  }), [categorySEO, filteredProducts.length]);
+
+  const combinedSchemas = useMemo(() => [breadcrumbSchema, faqSchema, collectionSchema], [breadcrumbSchema, faqSchema, collectionSchema]);
+
   return (
     <div className="bg-neutral-50 min-h-screen py-8">
+      <SEOHead
+        title={categorySEO.title}
+        description={categorySEO.description}
+        canonicalPath={categorySEO.canonicalPath}
+        jsonLd={combinedSchemas}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Title & Breadcrumb */}
         <div className="mb-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500 mb-1">
-                <button
-                  onClick={() => handleSelectCategory('all')}
-                  className="hover:text-orange-600 transition-colors cursor-pointer"
+              <nav className="flex items-center gap-2 text-xs font-semibold text-neutral-500 mb-1" aria-label="Breadcrumb">
+                <SEOLink
+                  to="/catalog"
+                  navigate={() => handleSelectCategory('all')}
+                  className="hover:text-orange-600 transition-colors"
                 >
                   All Products
-                </button>
+                </SEOLink>
                 {selectedCategory !== 'all' && (
                   <>
                     <span>/</span>
                     <span className="text-orange-600 font-bold">{selectedCategory}</span>
                   </>
                 )}
-              </div>
+              </nav>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
                 {selectedCategory !== 'all' ? selectedCategory : 'All Industrial Products'}
               </h1>
@@ -514,6 +617,61 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* CATEGORY TECHNICAL SEO SECTION & FAQ ACCORDION */}
+        {/* ========================================================= */}
+        <div className="mt-16 pt-10 border-t border-neutral-200">
+          <div className="bg-white rounded-2xl border border-neutral-200/90 p-6 sm:p-10 shadow-xs">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="lg:col-span-6 space-y-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-orange-600" />
+                  <span>Industrial Instrumentation Authority</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-neutral-900 leading-tight">
+                  {selectedCategory !== 'all'
+                    ? `${selectedCategory} in Pakistan — Technical Supply & Distribution`
+                    : 'Precision Process Instrumentation & Gauges in Pakistan'}
+                </h2>
+                <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                  {selectedCategory !== 'all'
+                    ? `Gauge House supplies precision-engineered ${selectedCategory.toLowerCase()} to industrial process plants, textile mills, fertilizer complexes, and petrochemical refineries across Pakistan. All units undergo stringent pressure and calibration testing before dispatch from our Brandreth Road, Lahore hub.`
+                    : 'Since 1998, Gauge House has served as Pakistan’s premier supply center for industrial pressure gauges, vacuum indicators, digital transmitters, and temperature sensors. We maintain direct ex-stock availability of German WIKA instruments alongside heavy-duty stainless steel industrial accessories.'}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 text-xs text-neutral-700">
+                  <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/60">
+                    <span className="font-bold text-neutral-900 block mb-0.5">Nationwide Express</span>
+                    <span>Direct TCS & Cargo delivery to Karachi, Lahore, Faisalabad, and Multan.</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/60">
+                    <span className="font-bold text-neutral-900 block mb-0.5">Verified Quality</span>
+                    <span>100% genuine industrial wetted parts (SS304 / SS316) and calibration.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category FAQs */}
+              <div className="lg:col-span-6 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-600 mb-2">
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Frequently Asked Questions</span>
+                </div>
+                {categoryFaqs.map((faq, idx) => (
+                  <div key={idx} className="bg-neutral-50 rounded-xl p-4 border border-neutral-200/80">
+                    <h3 className="text-xs sm:text-sm font-bold text-neutral-900 mb-1">
+                      {faq.question}
+                    </h3>
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
