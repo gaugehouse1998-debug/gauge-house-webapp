@@ -77,7 +77,7 @@ ORDER DETAILS
 Order Number: ${orderNumber}
 Order Date: ${orderDate}
 Current Order Status: ${statusDisplay}
-Delivery Service: ${order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS Door-to-Door')}${order.deliveryTime ? ` (${order.deliveryTime})` : ''}${typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 ? `\nConsignment Weight: ${order.totalWeightKg.toFixed(2)} KG` : ''}
+Delivery Service: ${order.deliveryServiceName || ((order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') ? 'Self Pickup from Gauge House' : order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS Door-to-Door')}${order.deliveryTime ? ` (${order.deliveryTime})` : ''}${typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 ? `\nConsignment Weight: ${order.totalWeightKg.toFixed(2)} KG` : ''}
 
 DELIVERY ADDRESS:
 ${customerName}
@@ -95,7 +95,7 @@ ${itemsText || '  Standard Instrument Order'}
 PAYMENT & FINANCIAL SUMMARY
 --------------------------------------------------
 Subtotal: PKR ${order.subtotal?.toLocaleString() || '0'}
-Shipping & Cargo (${order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Cargo' : 'Courier')}): PKR ${order.shipping?.toLocaleString() || '0'}
+Shipping & Cargo (${order.deliveryServiceName || ((order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') ? 'Self Pickup' : order.deliveryMethod === 'local_cargo' ? 'Cargo' : 'Courier')}): PKR ${order.shipping?.toLocaleString() || '0'}
 Grand Total: PKR ${order.total?.toLocaleString() || '0'}
 Payment Method: ${paymentMethodDisplay}
 Payment Status: ${paymentStatusDisplay}${

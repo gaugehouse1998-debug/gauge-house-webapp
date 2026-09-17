@@ -103,7 +103,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<DeliveryMethodType>(() => {
     try {
       const saved = localStorage.getItem('gauge_house_preferred_delivery');
-      if (saved === 'local_cargo' || saved === 'door_to_door') {
+      if (saved === 'local_cargo' || saved === 'door_to_door' || saved === 'self_pickup') {
         return saved;
       }
     } catch {}
@@ -120,7 +120,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
   };
 
   const isFreeShipping = subtotal >= settings.freeShippingThreshold && settings.freeShippingThreshold > 0;
-  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : (selectedDeliveryOption?.fee ?? 0);
+  const isPickupSelected = selectedDeliveryOption?.method === 'self_pickup';
+  const shippingFee = items.length === 0 ? 0 : isPickupSelected ? 0 : isFreeShipping ? 0 : (selectedDeliveryOption?.fee ?? 0);
   const grandTotal = subtotal + shippingFee;
 
   if (items.length === 0) {
@@ -242,10 +243,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
         shipping: shippingFee,
         total: grandTotal,
         deliveryMethod: selectedDeliveryOption?.method || 'door_to_door',
-        deliveryServiceName: selectedDeliveryOption?.name || 'Courier Service',
-        deliveryTime: selectedDeliveryOption?.deliveryTime || '',
+        deliveryServiceName: selectedDeliveryOption?.method === 'self_pickup' ? 'Self Pickup' : (selectedDeliveryOption?.name || 'Courier Service'),
+        deliveryTime: selectedDeliveryOption?.deliveryTime || (selectedDeliveryOption?.method === 'self_pickup' ? 'Ready 2 days after payment confirmation' : ''),
         totalWeightKg: totalWeight,
-        deliveryRatePerKg: selectedDeliveryOption?.ratePerKg || 0,
+        deliveryRatePerKg: selectedDeliveryOption?.method === 'self_pickup' ? 0 : (selectedDeliveryOption?.ratePerKg || 0),
         notes: customer.notes || '',
         paymentMethod,
         paymentStatus: isBank ? 'payment_pending' : 'unpaid',
@@ -593,11 +594,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {deliveryOptions.map((opt) => {
                         const isSelected = selectedDeliveryMethod === opt.method;
+                        const isPickup = opt.method === 'self_pickup';
                         return (
                           <label
                             key={opt.method}
                             onClick={() => handleSelectDeliveryMethod(opt.method)}
                             className={`p-4 rounded-xl border text-xs cursor-pointer transition-all flex flex-col justify-between gap-3 ${
+                              isPickup ? 'sm:col-span-2' : ''
+                            } ${
                               isSelected
                                 ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-400/50 shadow-xs'
                                 : 'border-neutral-200 bg-neutral-50/60 hover:bg-neutral-100/80'
@@ -617,18 +621,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                                     {opt.name}
                                   </span>
                                   <span className="text-[11px] font-semibold text-neutral-600 block">
-                                    {opt.label} • Estimated {opt.deliveryTime}
+                                    {isPickup ? 'Customer personal pickup • Ready 2 Days after payment confirmation' : `${opt.label} • Estimated ${opt.deliveryTime}`}
                                   </span>
-                                  <span className="text-[11px] text-neutral-500 font-mono mt-0.5 block">
-                                    Weight Rate: {formatPrice(opt.ratePerKg)} / KG
-                                  </span>
+                                  {!isPickup && (
+                                    <span className="text-[11px] text-neutral-500 font-mono mt-0.5 block">
+                                      Weight Rate: {formatPrice(opt.ratePerKg)} / KG
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
                                 <span className="font-extrabold text-neutral-900 text-sm block">
-                                  {isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
+                                  {isPickup ? 'FREE' : isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
                                 </span>
-                                {isFreeShipping ? (
+                                {isPickup ? (
+                                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded inline-block">
+                                    Rs. 0 Charges
+                                  </span>
+                                ) : isFreeShipping ? (
                                   <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
                                     Free Tier
                                   </span>
@@ -639,6 +649,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                                 )}
                               </div>
                             </div>
+
+                            {/* Note for Self Pickup */}
+                            {opt.note && (
+                              <div className="pt-2 border-t border-neutral-200/80 text-[11px] text-neutral-600 leading-relaxed flex items-start gap-1.5">
+                                <span className="text-orange-600 font-bold shrink-0">Note:</span>
+                                <span>{opt.note}</span>
+                              </div>
+                            )}
                           </label>
                         );
                       })}
@@ -923,11 +941,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
                         {selectedDeliveryOption?.name || 'Courier / Cargo'}
                       </span>
                       <span className="text-[11px] text-neutral-400 block">
-                        {selectedDeliveryOption?.deliveryTime} • {formatPrice(selectedDeliveryOption?.ratePerKg || 0)}/KG
+                        {isPickupSelected
+                          ? 'Ready 2 Days after payment • No delivery/waiting charges'
+                          : `${selectedDeliveryOption?.deliveryTime} • ${formatPrice(selectedDeliveryOption?.ratePerKg || 0)}/KG`}
                       </span>
                     </div>
                     <span className="font-bold text-neutral-900">
-                      {isFreeShipping ? (
+                      {isPickupSelected ? (
+                        <span className="text-emerald-600 font-extrabold">FREE (Rs. 0)</span>
+                      ) : isFreeShipping ? (
                         <span className="text-emerald-600 font-extrabold">FREE Delivery</span>
                       ) : (
                         formatPrice(shippingFee)

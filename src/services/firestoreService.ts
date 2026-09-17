@@ -24,7 +24,8 @@ import {
   CustomerUser,
   PaymentAccount,
   PaymentMethod,
-  PaymentStatus
+  PaymentStatus,
+  DeliveryMethodType
 } from '../types';
 import {
   DEFAULT_STORE_SETTINGS,
@@ -341,12 +342,19 @@ export async function createOrderInFirestore(
 
     const trustedTotalWeightKg = calculateCartTotalWeight(validatedItems);
 
-    const deliveryMethod = orderData.deliveryMethod === 'local_cargo' ? 'local_cargo' : 'door_to_door';
+    const isSelfPickup = orderData.deliveryMethod === 'self_pickup' || (orderData.deliveryMethod as any) === 'Self Pickup';
+    const isLocalCargo = orderData.deliveryMethod === 'local_cargo';
+    const deliveryMethod: DeliveryMethodType = isSelfPickup ? 'self_pickup' : (isLocalCargo ? 'local_cargo' : 'door_to_door');
+
     let trustedRatePerKg = 500;
     let trustedServiceName = 'TCS';
     let trustedDeliveryTime = '2–3 Days';
 
-    if (deliveryMethod === 'local_cargo') {
+    if (isSelfPickup) {
+      trustedRatePerKg = 0;
+      trustedServiceName = 'Self Pickup';
+      trustedDeliveryTime = 'Ready 2 days after payment confirmation';
+    } else if (isLocalCargo) {
       trustedRatePerKg = Number(trustedSettings.localCargoRatePerKg) > 0 ? Number(trustedSettings.localCargoRatePerKg) : 300;
       trustedServiceName = trustedSettings.localCargoName?.trim() || 'Local Cargo';
       trustedDeliveryTime = trustedSettings.localCargoDeliveryTime?.trim() || '2–5 Days';
@@ -357,10 +365,11 @@ export async function createOrderInFirestore(
     }
 
     const isFreeShipping =
-      trustedSettings.freeShippingThreshold > 0 &&
-      orderData.subtotal >= trustedSettings.freeShippingThreshold;
+      isSelfPickup ||
+      (trustedSettings.freeShippingThreshold > 0 &&
+      orderData.subtotal >= trustedSettings.freeShippingThreshold);
 
-    const trustedShippingFee = isFreeShipping ? 0 : calculateDeliveryFee(trustedTotalWeightKg, trustedRatePerKg);
+    const trustedShippingFee = isSelfPickup ? 0 : (isFreeShipping ? 0 : calculateDeliveryFee(trustedTotalWeightKg, trustedRatePerKg));
     const trustedGrandTotal = orderData.subtotal + trustedShippingFee;
 
     const order: Order = cleanFirestoreData({

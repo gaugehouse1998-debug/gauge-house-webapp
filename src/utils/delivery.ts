@@ -2,11 +2,12 @@ import { StoreSettings, DeliveryMethodType, CartItem } from '../types';
 
 export interface DeliveryOption {
   method: DeliveryMethodType;
-  name: string; // e.g. "TCS" or "Local Cargo"
-  label: string; // e.g. "Door-to-Door Delivery" or "Local Cargo Delivery"
+  name: string; // e.g. "TCS" or "Local Cargo" or "Self Pickup from Gauge House"
+  label: string; // e.g. "Door-to-Door Delivery" or "Local Cargo Delivery" or "Self Pickup from Gauge House"
   ratePerKg: number;
-  deliveryTime: string; // e.g. "2–3 Days"
+  deliveryTime: string; // e.g. "2–3 Days" or "2 Days after payment confirmation"
   fee: number; // Exact calculated delivery fee (PKR)
+  note?: string;
 }
 
 /**
@@ -86,6 +87,17 @@ export function getAvailableDeliveryOptions(settings: StoreSettings, totalWeight
       fee: calculateDeliveryFee(totalWeightKg, 500),
     });
   }
+
+  // 3. Self Pickup from Gauge House (Zero delivery charges, zero waiting charges, ready 2 days after payment confirmation)
+  options.push({
+    method: 'self_pickup',
+    name: 'Self Pickup from Gauge House',
+    label: 'Collect from Gauge House',
+    ratePerKg: 0,
+    deliveryTime: '2 Days after payment confirmation',
+    fee: 0,
+    note: 'Collect your order from Gauge House. Your parcel will be ready for self-pickup 2 days after payment confirmation. No delivery or waiting charges apply.',
+  });
 
   return options;
 }

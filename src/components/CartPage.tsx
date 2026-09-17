@@ -34,7 +34,7 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
   const [selectedMethod, setSelectedMethod] = useState<DeliveryMethodType>(() => {
     try {
       const saved = localStorage.getItem('gauge_house_preferred_delivery');
-      if (saved === 'local_cargo' || saved === 'door_to_door') {
+      if (saved === 'local_cargo' || saved === 'door_to_door' || saved === 'self_pickup') {
         return saved;
       }
     } catch {}
@@ -51,7 +51,8 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
   };
 
   const isFreeShipping = subtotal >= settings.freeShippingThreshold && settings.freeShippingThreshold > 0;
-  const shippingFee = items.length === 0 ? 0 : isFreeShipping ? 0 : (activeOption?.fee ?? 0);
+  const isPickupSelected = activeOption?.method === 'self_pickup';
+  const shippingFee = items.length === 0 ? 0 : isPickupSelected ? 0 : isFreeShipping ? 0 : (activeOption?.fee ?? 0);
   const grandTotal = subtotal + shippingFee;
 
   return (
@@ -267,12 +268,14 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
                                 {opt.name} ({opt.label})
                               </span>
                               <span className="text-[11px] text-neutral-500 block">
-                                Rate: {formatPrice(opt.ratePerKg)}/KG • Transit: {opt.deliveryTime}
+                                {opt.method === 'self_pickup'
+                                  ? opt.deliveryTime
+                                  : `Rate: ${formatPrice(opt.ratePerKg)}/KG • Transit: ${opt.deliveryTime}`}
                               </span>
                             </div>
                           </div>
                           <span className="font-bold text-neutral-900 shrink-0">
-                            {isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
+                            {opt.method === 'self_pickup' ? 'FREE' : isFreeShipping ? 'FREE' : formatPrice(opt.fee)}
                           </span>
                         </label>
                       ))}

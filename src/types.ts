@@ -151,7 +151,7 @@ export interface PaymentAccount {
   updatedAt: string;
 }
 
-export type DeliveryMethodType = 'door_to_door' | 'local_cargo';
+export type DeliveryMethodType = 'door_to_door' | 'local_cargo' | 'self_pickup' | 'Self Pickup';
 
 export interface Order {
   id: string;

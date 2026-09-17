@@ -1476,6 +1476,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                           <td className="py-3 px-4 max-w-xs truncate">
                             <span className="font-semibold block">{order.customer.city}</span>
                             <span className="text-[11px] text-neutral-500 truncate block">{order.customer.address}</span>
+                            {(order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') && (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900">
+                                Self Pickup
+                              </span>
+                            )}
                           </td>
 
                           <td className="py-3 px-4">
@@ -2876,17 +2881,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                   </h4>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-neutral-200 text-neutral-800">
-                  {inspectingOrder.deliveryMethod === 'local_cargo'
+                  {inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup' || inspectingOrder.deliveryServiceName === 'Self Pickup'
+                    ? 'Self Pickup'
+                    : inspectingOrder.deliveryMethod === 'local_cargo'
                     ? 'Local Cargo Delivery'
                     : 'Door-to-Door Delivery'}
                 </span>
               </div>
 
+              {(inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup' || inspectingOrder.deliveryServiceName === 'Self Pickup') && (
+                <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs text-orange-900 font-medium">
+                  <strong>Self Pickup from Gauge House:</strong> Customer will personally collect the parcel from Gauge House 2 days after payment confirmation. No delivery or waiting charges apply.
+                </div>
+              )}
+
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white p-3 rounded-lg border border-neutral-200 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-500 block">Carrier / Service</span>
                   <span className="font-bold text-neutral-900">
-                    {inspectingOrder.deliveryServiceName || (inspectingOrder.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')}
+                    {inspectingOrder.deliveryServiceName || ((inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup') ? 'Self Pickup' : inspectingOrder.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')}
                   </span>
                 </div>
                 <div>
@@ -2900,7 +2913,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-500 block">Applied Rate</span>
                   <span className="font-semibold text-neutral-800">
-                    {typeof inspectingOrder.deliveryRatePerKg === 'number' && inspectingOrder.deliveryRatePerKg > 0
+                    {(inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup' || inspectingOrder.deliveryServiceName === 'Self Pickup')
+                      ? 'Rs. 0 (Self Pickup)'
+                      : typeof inspectingOrder.deliveryRatePerKg === 'number' && inspectingOrder.deliveryRatePerKg > 0
                       ? `${formatPrice(inspectingOrder.deliveryRatePerKg)} / KG`
                       : 'Fixed / Legacy'}
                   </span>
@@ -2908,13 +2923,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-500 block">Transit Time</span>
                   <span className="font-semibold text-neutral-800">
-                    {inspectingOrder.deliveryTime || (inspectingOrder.deliveryMethod === 'local_cargo' ? '2–5 Days' : '2–3 Days')}
+                    {inspectingOrder.deliveryTime || ((inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup') ? 'Ready in 2 days after payment confirmation' : inspectingOrder.deliveryMethod === 'local_cargo' ? '2–5 Days' : '2–3 Days')}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-500 block">Shipping Amount</span>
                   <span className="font-bold text-orange-600">
-                    {formatPrice(inspectingOrder.shipping)}
+                    {(inspectingOrder.deliveryMethod === 'self_pickup' || inspectingOrder.deliveryMethod === 'Self Pickup' || inspectingOrder.deliveryServiceName === 'Self Pickup')
+                      ? 'Rs. 0 (No Charges)'
+                      : formatPrice(inspectingOrder.shipping)}
                   </span>
                 </div>
               </div>

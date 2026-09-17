@@ -42,7 +42,13 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
       `*Phone:* ${order.customer.phone}`,
       `*City:* ${order.customer.city}`,
       order.customer.companyName ? `*Company:* ${order.customer.companyName}` : '',
-      `*Delivery Method:* ${order.deliveryMethod === 'local_cargo' ? 'Local Cargo Delivery' : 'Door-to-Door Delivery'} (${order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})`,
+      `*Delivery Method:* ${
+        order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup'
+          ? 'Self Pickup from Gauge House (Self Pickup)'
+          : order.deliveryMethod === 'local_cargo'
+          ? 'Local Cargo Delivery'
+          : 'Door-to-Door Delivery'
+      } (${order.deliveryServiceName || (order.deliveryMethod === 'self_pickup' ? 'Self Pickup' : order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})`,
       typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 ? `*Consignment Weight:* ${order.totalWeightKg.toFixed(2)} KG` : '',
       typeof order.deliveryRatePerKg === 'number' && order.deliveryRatePerKg > 0 ? `*Delivery Rate:* ${formatPrice(order.deliveryRatePerKg)}/KG` : '',
       order.deliveryTime ? `*Estimated Transit:* ${order.deliveryTime}` : '',
@@ -171,10 +177,19 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
               <p>
                 <strong>Delivery Method:</strong>{' '}
                 <span className="font-semibold text-neutral-900">
-                  {order.deliveryMethod === 'local_cargo' ? 'Local Cargo Delivery' : 'Door-to-Door Delivery'}
-                  {' '}({order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})
+                  {order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup'
+                    ? 'Self Pickup from Gauge House'
+                    : order.deliveryMethod === 'local_cargo'
+                    ? 'Local Cargo Delivery'
+                    : 'Door-to-Door Delivery'}
+                  {' '}({order.deliveryServiceName || ((order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') ? 'Self Pickup' : order.deliveryMethod === 'local_cargo' ? 'Local Cargo' : 'TCS')})
                 </span>
               </p>
+              {(order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') && (
+                <p className="text-xs text-orange-800 bg-orange-50 border border-orange-200 p-2.5 rounded-lg mt-1 font-medium leading-relaxed">
+                  Collect your order from Gauge House. Your parcel will be ready for self-pickup 2 days after payment confirmation. No delivery or waiting charges apply.
+                </p>
+              )}
               {typeof order.totalWeightKg === 'number' && order.totalWeightKg > 0 && (
                 <p>
                   <strong>Total Weight:</strong>{' '}
@@ -251,7 +266,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
                 <span className="font-bold text-neutral-900">{formatPrice(order.subtotal)}</span>
               </div>
               <div className="flex justify-between text-neutral-600">
-                <span>Shipping ({order.deliveryServiceName || (order.deliveryMethod === 'local_cargo' ? 'Cargo' : 'Courier')}):</span>
+                <span>Shipping ({order.deliveryServiceName || ((order.deliveryMethod === 'self_pickup' || order.deliveryServiceName === 'Self Pickup') ? 'Self Pickup' : order.deliveryMethod === 'local_cargo' ? 'Cargo' : 'Courier')}):</span>
                 <span className="font-bold text-neutral-900">{formatPrice(order.shipping)}</span>
               </div>
               <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm">
