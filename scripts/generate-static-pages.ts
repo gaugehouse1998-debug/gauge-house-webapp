@@ -36,12 +36,42 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function getAssetTags(htmlContent: string) {
+function getAssetTags(htmlContent: string, distDir?: string) {
   const scriptRegex = /<script\b[^>]*src="[^"]*"[^>]*><\/script>/gi;
   const linkCssRegex = /<link\b[^>]*rel="stylesheet"[^>]*>/gi;
 
-  const scripts = htmlContent.match(scriptRegex) || [];
-  const styles = htmlContent.match(linkCssRegex) || [];
+  let scripts: string[] = (htmlContent.match(scriptRegex) || []).filter(
+    (tag) => !tag.includes('/src/main.tsx')
+  );
+  let styles: string[] = Array.from(htmlContent.match(linkCssRegex) || []);
+
+  // Fallback: If no script tags found in raw HTML, inspect dist/assets directly
+  if (distDir) {
+    const assetsDir = path.join(distDir, 'assets');
+    if (fs.existsSync(assetsDir)) {
+      const assetFiles = fs.readdirSync(assetsDir);
+      if (scripts.length === 0) {
+        const jsFiles = assetFiles.filter(
+          (f) => f.endsWith('.js') && (f.startsWith('index-') || f.startsWith('main-') || f.includes('index'))
+        );
+        if (jsFiles.length > 0) {
+          scripts = jsFiles.map(
+            (f) => `<script type="module" crossorigin src="${BASE_PATH}/assets/${f}"></script>`
+          );
+        }
+      }
+      if (styles.length === 0) {
+        const cssFiles = assetFiles.filter(
+          (f) => f.endsWith('.css') && (f.startsWith('index-') || f.startsWith('main-') || f.includes('index'))
+        );
+        if (cssFiles.length > 0) {
+          styles = cssFiles.map(
+            (f) => `<link rel="stylesheet" crossorigin href="${BASE_PATH}/assets/${f}">`
+          );
+        }
+      }
+    }
+  }
 
   return {
     scriptsHtml: scripts.join('\n    '),
@@ -187,7 +217,7 @@ export async function generateAllStaticPages() {
   }
 
   const rawIndexHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
-  const assetTags = getAssetTags(rawIndexHtml);
+  const assetTags = getAssetTags(rawIndexHtml, distDir);
 
   console.log('Generating pre-rendered static HTML pages for GitHub Pages...');
 
@@ -876,7 +906,28 @@ Sitemap: ${BASE_URL}/sitemap.xml
   fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsTxt, 'utf-8');
   fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsTxt, 'utf-8');
 
-  console.log(`Generated ${sitemapUrls.length} static public URLs successfully!`);
+  // 11. GITHUB PAGES BRANCH DEPLOYMENT COMPATIBILITY & .nojekyll
+  // Ensure .nojekyll exists in dist/ and root to prevent Jekyll from skipping asset files
+  fs.writeFileSync(path.join(distDir, '.nojekyll'), '', 'utf-8');
+  const rootDir = path.resolve(__dirname, '..');
+  fs.writeFileSync(path.join(rootDir, '.nojekyll'), '', 'utf-8');
+
+  // Copy compiled dist/assets into root assets/ directory for static asset availability
+  const rootAssetsDir = path.join(rootDir, 'assets');
+  ensureDir(rootAssetsDir);
+  const distAssetsDir = path.join(distDir, 'assets');
+  if (fs.existsSync(distAssetsDir)) {
+    const files = fs.readdirSync(distAssetsDir);
+    for (const file of files) {
+      const srcFile = path.join(distAssetsDir, file);
+      const destFile = path.join(rootAssetsDir, file);
+      if (fs.statSync(srcFile).isFile()) {
+        fs.copyFileSync(srcFile, destFile);
+      }
+    }
+  }
+
+  console.log(`Generated ${sitemapUrls.length} static public URLs and synchronized production assets successfully!`);
 }
 
 generateAllStaticPages().catch((err) => {
