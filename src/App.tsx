@@ -15,6 +15,7 @@ import { AccountPage } from './components/AccountPage';
 import { AdminPortal } from './components/admin/AdminPortal';
 import { GuidesPage } from './components/GuidesPage';
 import { GuideDetailPage } from './components/GuideDetailPage';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { INDUSTRIAL_GUIDES } from './data/guidesData';
 import { SearchModal } from './components/SearchModal';
 import { QuickViewModal } from './components/QuickViewModal';
@@ -303,7 +304,17 @@ function MainApp() {
       return <GuidesPage navigate={navigate} />;
     }
 
-    // 11. Clean Category alias (e.g. /pressure-gauges)
+    // 11. Privacy Policy Page: /privacy-policy
+    if (
+      currentRoute === '/privacy-policy' ||
+      currentRoute === '/privacy-policy/' ||
+      currentRoute === '/privacy' ||
+      currentRoute === '/privacy/'
+    ) {
+      return <PrivacyPolicyPage navigate={navigate} />;
+    }
+
+    // 12. Clean Category alias (e.g. /pressure-gauges)
     const cleanSlug = currentRoute.replace(/^\/+/, '').split('?')[0].replace(/\/+$/, '');
     const matchedCategory = categories.find((c) => c.slug === cleanSlug);
     if (matchedCategory) {

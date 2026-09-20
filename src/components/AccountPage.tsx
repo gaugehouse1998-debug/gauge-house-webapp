@@ -466,10 +466,19 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
             </form>
           )}
 
-          <div className="mt-6 pt-4 border-t border-neutral-100 text-center">
+          <div className="mt-6 pt-4 border-t border-neutral-100 text-center space-y-1.5">
             <p className="text-xs text-neutral-500">
               Verified email registration secures your order history and delivery records.
             </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate('/privacy-policy')}
+                className="text-xs text-orange-600 hover:text-orange-700 underline font-medium cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -716,15 +725,23 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
         </div>
 
         {/* Security & Account Management Footer */}
-        <div className="pt-6 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-400">
+        <div className="pt-6 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-400">
           <span>Customer Account ID: {user.uid}</span>
-          <button
-            onClick={() => setDeleteModalOpen(true)}
-            className="text-neutral-400 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Delete Account</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/privacy-policy')}
+              className="text-neutral-500 hover:text-orange-600 transition-colors underline cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="text-neutral-400 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Account</span>
+            </button>
+          </div>
         </div>
       </div>
 

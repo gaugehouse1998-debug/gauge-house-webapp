@@ -138,8 +138,9 @@ function buildFooterHtml() {
         </p>
       </div>
     </div>
-    <div style="border-top: 1px solid #1f1f1f; padding-top: 1.5rem; text-align: center; font-size: 0.75rem; color: #525252;">
-      © 2026 Gauge House. Precision You Can Trust. Industrial Equipment Supplier, Importer & Exporter in Pakistan.
+    <div style="border-top: 1px solid #1f1f1f; padding-top: 1.5rem; text-align: center; font-size: 0.75rem; color: #525252; display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <span>© 2026 Gauge House. Precision You Can Trust. Industrial Equipment Supplier, Importer & Exporter in Pakistan.</span>
+      <a href="${BASE_PATH}/privacy-policy" style="color: #ea580c; text-decoration: underline;">Privacy Policy</a>
     </div>
   </footer>`;
 }
@@ -828,7 +829,113 @@ export async function generateAllStaticPages() {
     fs.writeFileSync(path.join(guideDetailPageDir, 'index.html'), guideHtml, 'utf-8');
   }
 
-  // 8. 404 NOT FOUND PAGE (GitHub Pages standard)
+  // 8. PRIVACY POLICY PAGE (Google Play & Android App Compliant)
+  const privacyCanonical = `${BASE_URL}/privacy-policy`;
+  sitemapUrls.push({
+    loc: privacyCanonical,
+    lastmod: '2026-09-20',
+    changefreq: 'monthly',
+    priority: '0.6',
+  });
+
+  const privacyBody = `
+    ${buildHeaderHtml()}
+    <main style="max-width: 900px; margin: 0 auto; padding: 2.5rem 1.25rem;">
+      <nav aria-label="Breadcrumb" style="font-size: 0.8125rem; color: #a3a3a3; margin-bottom: 1.5rem;">
+        <a href="${BASE_PATH}/" style="color: #a3a3a3; text-decoration: none;">Home</a> /
+        <span style="color: #ffffff;">Privacy Policy</span>
+      </nav>
+      <span style="font-size: 0.75rem; font-weight: 700; color: #ea580c; text-transform: uppercase;">
+        Official Legal Documentation • Effective September 20, 2026
+      </span>
+      <h1 style="font-size: 2.25rem; font-weight: 900; color: #ffffff; margin: 0.75rem 0 1.5rem; line-height: 1.3;">
+        Gauge House Privacy Policy
+      </h1>
+      <div style="background-color: #171717; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #ea580c; margin-bottom: 2.5rem;">
+        <p style="font-size: 1.05rem; color: #e5e5e5; line-height: 1.6; margin: 0;">
+          This Privacy Policy explains how Gauge House (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operating in Pakistan as an established industrial instrumentation supplier, importer, and exporter (est. 1998), collects, uses, stores, and protects personal information when you use our web application and Android mobile application.
+        </p>
+      </div>
+
+      <article style="color: #d4d4d4; font-size: 0.95rem; line-height: 1.7;">
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">1. Information We Collect</h2>
+          <p style="margin-bottom: 0.5rem;">We collect only the essential personal information required to authenticate customer accounts, fulfill physical industrial shipments across Pakistan, and provide technical assistance:</p>
+          <ul style="color: #a3a3a3; font-size: 0.875rem; line-height: 1.8; padding-left: 1.25rem;">
+            <li><strong>Account & Profile Data:</strong> Full Name, Email Address, Contact/WhatsApp Phone Number, City, and Complete Physical Delivery Address.</li>
+            <li><strong>Authentication Data:</strong> User account credentials securely encrypted and authenticated via Google Firebase Authentication.</li>
+            <li><strong>Orders & Cart:</strong> Selected industrial instruments, quantities, order status, total amount in PKR, payment preference, and order history.</li>
+            <li><strong>Communications:</strong> Customer support requests, RFQs, and inquiries sent via email or WhatsApp.</li>
+          </ul>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">2. Third-Party Services & Firebase Infrastructure</h2>
+          <p style="margin-bottom: 0.5rem;">Our application utilizes Google Cloud and Firebase services to provide reliable, enterprise-grade data management:</p>
+          <ul style="color: #a3a3a3; font-size: 0.875rem; line-height: 1.8; padding-left: 1.25rem;">
+            <li><strong>Google Firebase Authentication:</strong> Manages secure customer login, registration, and encrypted session tokens.</li>
+            <li><strong>Google Firebase Firestore:</strong> Cloud database storing product catalog specifications, customer orders, and customer accounts under strict role-based access rules.</li>
+            <li><strong>Google Firebase Cloud Storage:</strong> Stores product datasheets, catalog imagery, and optional payment deposit receipts.</li>
+            <li><strong>Logistics Partners:</strong> Delivery details (name, phone, address) are shared with verified couriers (such as TCS or local cargo networks) solely for parcel delivery.</li>
+          </ul>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">3. How We Use Collected Data</h2>
+          <p>Personal data is used exclusively to fulfill customer orders, coordinate delivery or self-pickup from Gauge House, maintain account order histories, communicate shipping tracking, and satisfy commercial accounting obligations. We do not sell, rent, or trade personal data to third parties.</p>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">4. Data Security & Storage</h2>
+          <p>All communication is encrypted in transit using industry-standard TLS/SSL (HTTPS). Firestore and Firebase Storage utilize server-side AES-256 encryption at rest. Customer order records are restricted so that each customer can access only their own orders.</p>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">5. Account & Data Deletion Requests</h2>
+          <p style="margin-bottom: 0.5rem;">In accordance with Google Play Developer policies, users have full rights to delete their account and associated personal data:</p>
+          <ul style="color: #a3a3a3; font-size: 0.875rem; line-height: 1.8; padding-left: 1.25rem;">
+            <li><strong>In-App Deletion:</strong> Log into your account &gt; Customer Account &gt; Profile & Settings &gt; Click &ldquo;Delete Account&rdquo;.</li>
+            <li><strong>Email Request:</strong> Send an email to <a href="mailto:gaugehouse1998@gmail.com" style="color: #ea580c;">gaugehouse1998@gmail.com</a> with the subject line &ldquo;Account / Data Deletion Request&rdquo; including your registered email and phone number. Requests are processed within 30 days.</li>
+          </ul>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">6. Children's Privacy</h2>
+          <p>Our application is intended for industrial professionals, engineers, and businesses (18+). We do not knowingly collect personal information from children under 13.</p>
+        </section>
+
+        <section style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.35rem; font-weight: 700; color: #ffffff; margin-bottom: 0.75rem;">7. Contact Information</h2>
+          <p>For any privacy inquiries or data requests, contact us at:</p>
+          <p style="color: #e5e5e5; margin-top: 0.5rem;">
+            <strong>Gauge House</strong><br>
+            Email: <a href="mailto:gaugehouse1998@gmail.com" style="color: #ea580c;">gaugehouse1998@gmail.com</a><br>
+            Phone / WhatsApp: <a href="tel:03354499186" style="color: #ea580c;">0335-4499186</a><br>
+            Pakistan
+          </p>
+        </section>
+      </article>
+
+      <div style="background-color: #171717; padding: 2rem; border-radius: 0.75rem; border: 1px solid #262626; text-align: center; margin-top: 2.5rem;">
+        <a href="${BASE_PATH}/" style="background-color: #ea580c; color: #ffffff; padding: 0.75rem 1.5rem; border-radius: 0.375rem; text-decoration: none; font-weight: 700; font-size: 0.875rem;">Return to Homepage</a>
+      </div>
+    </main>
+    ${buildFooterHtml()}`;
+
+  const privacyHtml = generateHtmlPage({
+    title: 'Privacy Policy | Gauge House Pakistan',
+    description: 'Privacy Policy for Gauge House industrial equipment application and web portal. Learn how personal data, customer accounts, and order records are protected.',
+    canonicalUrl: privacyCanonical,
+    schemas: [organizationSchema],
+    bodyContent: privacyBody,
+    assetTags,
+  });
+
+  const privacyDir = path.join(distDir, 'privacy-policy');
+  ensureDir(privacyDir);
+  fs.writeFileSync(path.join(privacyDir, 'index.html'), privacyHtml, 'utf-8');
+
+  // 9. 404 NOT FOUND PAGE (GitHub Pages standard)
   const notFoundBody = `
     ${buildHeaderHtml()}
     <main style="min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1.25rem; text-align: center;">

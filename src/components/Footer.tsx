@@ -120,6 +120,15 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
                   Customer Account
                 </SEOLink>
               </li>
+              <li>
+                <SEOLink
+                  to="/privacy-policy"
+                  navigate={navigate}
+                  className="hover:text-white transition-colors block"
+                >
+                  Privacy Policy
+                </SEOLink>
+              </li>
               {(!user || isAdmin) && (
                 <li>
                   <SEOLink
@@ -199,8 +208,15 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <div>
-            © {new Date().getFullYear()} Gauge House. All rights reserved. Precision You Can Trust.
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>© {new Date().getFullYear()} Gauge House. All rights reserved. Precision You Can Trust.</span>
+            <SEOLink
+              to="/privacy-policy"
+              navigate={navigate}
+              className="text-neutral-400 hover:text-white transition-colors underline"
+            >
+              Privacy Policy
+            </SEOLink>
           </div>
           <div className="flex items-center gap-6">
             <span>Currency: <strong className="text-neutral-300">PKR (Rs.)</strong></span>
