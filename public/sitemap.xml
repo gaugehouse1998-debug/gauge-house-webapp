@@ -1,109 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-  <!-- Homepage -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-
-  <!-- Complete Industrial Product Catalog -->
   <url>
     <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/catalog</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
-
-  <!-- Technical Engineering Guides Hub -->
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/pressure-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/temperature-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/pressure-transmitters</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/wika</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/industrial-accessories</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/electrical-contact-gauges</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/magnehelic</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/other-products</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/stainless-steel-glycerin-filled-pressure-gauge</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/wika-model-232-50-industrial-pressure-gauge</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/industrial-bimetal-temperature-gauge-every-angle</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/magnehelic-differential-pressure-gauge-series-2000</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/heavy-duty-stainless-steel-needle-valve</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/industrial-4-20ma-pressure-transmitter-compact</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/product/electric-contact-pressure-gauge-adjustable-limit-contacts</loc>
+    <lastmod>2026-09-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
   <url>
     <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
-
-  <!-- Engineering Guide: Selection Guide Pakistan -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/industrial-pressure-gauge-selection-guide-pakistan</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/how-to-select-a-pressure-gauge</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Engineering Guide: Bourdon Tube vs Diaphragm vs Capsule -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/bourdon-tube-vs-diaphragm-vs-capsule-pressure-gauges</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/ss304-vs-ss316-pressure-gauge</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Engineering Guide: 4-20mA Pressure Transmitter Calibration -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/pressure-transmitter-4-20ma-calibration-guide</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/4-inch-vs-2-5-inch-pressure-gauge</loc>
     <lastmod>2026-09-17</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Category: Pressure Gauges -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/pressure-gauges</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/what-is-a-pressure-transmitter</loc>
     <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Category: Vacuum Gauges -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/vacuum-gauges</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/glycerin-filled-pressure-gauge-guide</loc>
     <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Category: Temperature Gauges -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/temperature-gauges</loc>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/guides/pressure-gauge-supplier-pakistan</loc>
     <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-
-  <!-- Category: Transmitters -->
   <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/transmitters</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Category: Digital Gauges -->
-  <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/digital-gauges</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Category: Valves & Manifolds -->
-  <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/valves-manifolds</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Category: Accessories -->
-  <url>
-    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/category/accessories</loc>
-    <lastmod>2026-09-17</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <loc>https://gaugehouse1998-debug.github.io/gauge-house-webapp/privacy-policy</loc>
+    <lastmod>2026-09-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>

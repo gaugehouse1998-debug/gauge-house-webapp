@@ -41,7 +41,7 @@ function getAssetTags(htmlContent: string, distDir?: string) {
   const linkCssRegex = /<link\b[^>]*rel="stylesheet"[^>]*>/gi;
 
   let scripts: string[] = (htmlContent.match(scriptRegex) || []).filter(
-    (tag) => !tag.includes('/src/main.tsx')
+    (tag) => !tag.includes('/src/main.tsx') && !tag.includes('pagead2') && !tag.includes('adsbygoogle')
   );
   let styles: string[] = Array.from(htmlContent.match(linkCssRegex) || []);
 
@@ -197,7 +197,8 @@ function generateHtmlPage({
     <meta name="twitter:image" content="${ogImg}" />
 
 ${schemaScripts}
-    <!-- Google AdSense Verification Script -->
+    <!-- Google AdSense Verification -->
+    <meta name="google-adsense-account" content="ca-pub-4720077339963302" />
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4720077339963302"
          crossorigin="anonymous"></script>
     ${assetTags.stylesHtml}
@@ -1010,16 +1011,29 @@ User-agent: Googlebot-Image
 Allow: /gauge-house-webapp/assets/
 Allow: /
 
+# Google AdSense Crawlers (Explicitly Allowed)
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-Display-Ads-Bot
+Allow: /
+
 Sitemap: ${BASE_URL}/sitemap.xml
 `;
 
   fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsTxt, 'utf-8');
   fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsTxt, 'utf-8');
 
+  // 10b. ADS.TXT
+  const adsTxt = `google.com, pub-4720077339963302, DIRECT, f08c47fec0942fa0\n`;
+  const rootDir = path.resolve(__dirname, '..');
+  fs.writeFileSync(path.join(distDir, 'ads.txt'), adsTxt, 'utf-8');
+  fs.writeFileSync(path.join(publicDir, 'ads.txt'), adsTxt, 'utf-8');
+  fs.writeFileSync(path.join(rootDir, 'ads.txt'), adsTxt, 'utf-8');
+
   // 11. GITHUB PAGES BRANCH DEPLOYMENT COMPATIBILITY & .nojekyll
   // Ensure .nojekyll exists in dist/ and root to prevent Jekyll from skipping asset files
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '', 'utf-8');
-  const rootDir = path.resolve(__dirname, '..');
   fs.writeFileSync(path.join(rootDir, '.nojekyll'), '', 'utf-8');
 
   // Copy compiled dist/assets into root assets/ directory for static asset availability

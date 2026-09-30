@@ -1,37 +1,30 @@
-# ==============================================================================
-# Robots.txt for Gauge House
-# Website: https://gaugehouse1998-debug.github.io/gauge-house-webapp/
-# Address: Brandreth Road, Lahore, Pakistan
-# ==============================================================================
-
 User-agent: *
 Allow: /
-Allow: /catalog
-Allow: /category/*
-Allow: /product/*
-Allow: /guides
-Allow: /guides/*
+Allow: /gauge-house-webapp/
+Allow: /gauge-house-webapp/catalog
+Allow: /gauge-house-webapp/category/
+Allow: /gauge-house-webapp/product/
+Allow: /gauge-house-webapp/guides/
+Allow: /gauge-house-webapp/assets/
+Disallow: /gauge-house-webapp/admin/
+Disallow: /gauge-house-webapp/checkout
+Disallow: /gauge-house-webapp/cart
+Disallow: /gauge-house-webapp/account
+Disallow: /gauge-house-webapp/order-confirmation
 
-# Prevent indexing of administrative and session paths
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /checkout
-Disallow: /order-confirmation
-Disallow: /account
-
-# Search engine crawlers specific directives
+# Googlebot specific rules
 User-agent: Googlebot
 Allow: /
-Allow: /*.js$
-Allow: /*.css$
-Allow: /*.png$
-Allow: /*.jpg$
-Allow: /*.jpeg$
-Allow: /*.webp$
-Allow: /*.svg$
 
 User-agent: Googlebot-Image
+Allow: /gauge-house-webapp/assets/
 Allow: /
 
-# XML Sitemap
+# Google AdSense Crawlers (Explicitly Allowed)
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Google-Display-Ads-Bot
+Allow: /
+
 Sitemap: https://gaugehouse1998-debug.github.io/gauge-house-webapp/sitemap.xml

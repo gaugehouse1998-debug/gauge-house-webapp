@@ -55,6 +55,9 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
     const robotsContent = noIndex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1';
     setMetaTag('robots', robotsContent);
 
+    // 4b. Google AdSense Publisher Account
+    setMetaTag('google-adsense-account', 'ca-pub-4720077339963302');
+
     // 5. Canonical URL
     const canonicalHref = canonicalPath ? getCanonicalUrl(canonicalPath) : `${BASE_URL}/`;
     let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
