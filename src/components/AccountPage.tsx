@@ -24,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
 import { subscribeToOrders, subscribeToUserOrders } from '../services/firestoreService';
 import { Order, CustomerUser } from '../types';
+import { AdBanner } from './AdBanner';
 
 interface AccountPageProps {
   navigate: (route: string) => void;
@@ -240,7 +241,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
   if (!user) {
     return (
       <div className="bg-neutral-50 min-h-screen py-12 px-4 sm:px-6">
-        <div className="max-w-md mx-auto bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-8 shadow-xs">
+        <div className="max-w-md mx-auto">
+          {/* Top Responsive Ad Banner */}
+          <AdBanner slotKey="accountTop" className="mb-6" />
+
+          <div className="bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-8 shadow-xs">
           {/* Header Icon */}
           <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto mb-4 shadow-inner">
             <UserIcon className="w-7 h-7" />
@@ -481,6 +486,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
             </div>
           </div>
         </div>
+        </div>
       </div>
     );
   }
@@ -493,6 +499,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({ navigate, onSelectOrde
   return (
     <div className="bg-neutral-50 min-h-screen py-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="accountTop" className="mb-4" />
+
         {/* Customer Profile & Status Card */}
         <div className="bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-8 shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-neutral-100">

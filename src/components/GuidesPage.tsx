@@ -4,6 +4,7 @@ import { INDUSTRIAL_GUIDES } from '../data/guidesData';
 import { SEOHead } from './SEOHead';
 import { SEOLink } from './SEOLink';
 import { generateBreadcrumbSchema } from '../utils/seo';
+import { AdBanner } from './AdBanner';
 
 interface GuidesPageProps {
   navigate: (route: string) => void;
@@ -25,6 +26,9 @@ export const GuidesPage: React.FC<GuidesPageProps> = ({ navigate }) => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="guidesTop" className="mb-6" />
+
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-xs text-neutral-500 mb-6">
           <SEOLink to="/" navigate={navigate} className="hover:text-orange-600 transition-colors">

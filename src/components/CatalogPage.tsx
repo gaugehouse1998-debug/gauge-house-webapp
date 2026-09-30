@@ -21,6 +21,7 @@ import { ProductCard } from './ProductCard';
 import { SEOHead } from './SEOHead';
 import { SEOLink } from './SEOLink';
 import { generateBreadcrumbSchema, generateFAQSchema, slugify, BASE_URL } from '../utils/seo';
+import { AdBanner } from './AdBanner';
 
 interface CatalogPageProps {
   navigate: (route: string) => void;
@@ -254,6 +255,9 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="catalogTop" className="mb-4" />
+
         {/* Header Title & Breadcrumb */}
         <div className="mb-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -569,6 +573,9 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
 
           {/* Product Grid (3 cols on desktop) */}
           <div className="lg:col-span-3">
+            {/* Above Products Listing Advertisement */}
+            <AdBanner slotKey="aboveProducts" className="mb-6" />
+
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-6">
                 {filteredProducts.map((product) => (

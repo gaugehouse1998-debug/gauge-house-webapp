@@ -17,6 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { SEOLink } from './SEOLink';
+import { AdBanner } from './AdBanner';
 
 interface PrivacyPolicyPageProps {
   navigate: (route: string) => void;
@@ -45,6 +46,9 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ navigate }
             Effective Date: September 20, 2026
           </span>
         </div>
+
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="privacyPolicyTop" className="mb-6" />
 
         {/* Header Hero Card */}
         <div className="bg-neutral-950 border border-neutral-800 rounded-3xl p-6 sm:p-10 mb-8 shadow-sm">
@@ -234,6 +238,15 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ navigate }
                   </h4>
                   <p className="text-neutral-400 text-xs">
                     When you order products for physical delivery, your name, destination address, and recipient contact number are shared strictly with verified courier and logistics providers (such as TCS or local cargo networks) solely for parcel transportation and delivery confirmation.
+                  </p>
+                </div>
+
+                <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4">
+                  <h4 className="font-semibold text-white mb-1">
+                    Google AdSense Advertising Network
+                  </h4>
+                  <p className="text-neutral-400 text-xs leading-relaxed">
+                    We display advertisements served by Google AdSense (Publisher ID: ca-pub-4720077339963302) across our digital platforms. Google uses cookies and web beacons to serve ads based on user visits to this website and other sites across the Internet. Users may opt out of personalized advertising by visiting Google Ads Settings (<a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline">https://www.google.com/settings/ads</a>) or learn more at Google&apos;s Advertising Privacy Terms (<a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline">https://policies.google.com/technologies/ads</a>).
                   </p>
                 </div>
               </div>

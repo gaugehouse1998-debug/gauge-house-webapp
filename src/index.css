@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Google AdSense: Hide unfilled ad containers automatically */
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}

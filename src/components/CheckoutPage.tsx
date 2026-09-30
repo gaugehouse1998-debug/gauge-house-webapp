@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { createOrderInFirestore } from '../services/firestoreService';
 import { Order, CustomerInfo, PaymentMethod, DeliveryMethodType } from '../types';
 import { calculateCartTotalWeight, getAvailableDeliveryOptions } from '../utils/delivery';
+import { AdBanner } from './AdBanner';
 
 interface CheckoutPageProps {
   navigate: (route: string) => void;
@@ -286,6 +287,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ navigate, onOrderSuc
             Direct Industrial Order Dispatch
           </span>
         </div>
+
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="checkoutTop" className="mb-6" />
 
         {/* CUSTOMER ACCOUNT REGISTRATION / LOGIN GATE IF NOT LOGGED IN */}
         {!user && (

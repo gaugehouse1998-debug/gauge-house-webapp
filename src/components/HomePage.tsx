@@ -22,6 +22,7 @@ import { SEOHead } from './SEOHead';
 import { SEOLink } from './SEOLink';
 import { generateLocalBusinessSchema, generateFAQSchema, BASE_URL } from '../utils/seo';
 import { INDUSTRIAL_GUIDES } from '../data/guidesData';
+import { AdBanner } from './AdBanner';
 
 interface HomePageProps {
   navigate: (route: string) => void;
@@ -92,6 +93,11 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
         canonicalPath="/"
         jsonLd={homeSchemas}
       />
+
+      {/* Website Top Responsive Advertisement */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <AdBanner slotKey="websiteTop" />
+      </div>
 
       {/* ========================================================= */}
       {/* 1. HERO SECTION */}
@@ -347,6 +353,9 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                 <ChevronRight className="w-4 h-4" />
               </SEOLink>
             </div>
+
+            {/* Above Featured Products Advertisement */}
+            <AdBanner slotKey="aboveProducts" className="my-6" />
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {featuredProducts.slice(0, 8).map((p) => (

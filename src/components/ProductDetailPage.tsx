@@ -32,6 +32,7 @@ import {
   generateFAQSchema,
   slugify,
 } from '../utils/seo';
+import { AdBanner } from './AdBanner';
 
 interface StagedVariantLine {
   id: string; // local temporary id for the staged line
@@ -300,6 +301,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ product, n
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="productDetailTop" className="mb-4" />
+
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-xs text-neutral-500 mb-6 flex-wrap" aria-label="Breadcrumb">
           <SEOLink to="/" navigate={navigate} className="hover:text-orange-600 transition-colors">

@@ -18,6 +18,7 @@ import {
 import { Order } from '../types';
 import { useStore } from '../context/StoreContext';
 import { AdvancePaymentVerificationBox } from './AdvancePaymentVerificationBox';
+import { AdBanner } from './AdBanner';
 
 interface OrderConfirmationPageProps {
   order: Order;
@@ -76,6 +77,9 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
   return (
     <div className="bg-neutral-50 min-h-screen py-10 print:bg-white print:py-0">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="orderConfirmationTop" className="print:hidden mb-6" />
+
         {/* Success Header Card */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-10 shadow-xs text-center print:shadow-none print:border-none">
           <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">

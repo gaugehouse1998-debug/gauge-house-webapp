@@ -197,6 +197,9 @@ function generateHtmlPage({
     <meta name="twitter:image" content="${ogImg}" />
 
 ${schemaScripts}
+    <!-- Google AdSense Verification Script -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4720077339963302"
+         crossorigin="anonymous"></script>
     ${assetTags.stylesHtml}
   </head>
   <body class="bg-neutral-950 text-neutral-100 antialiased">

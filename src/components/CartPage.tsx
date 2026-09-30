@@ -16,6 +16,7 @@ import { useCart } from '../context/CartContext';
 import { useStore } from '../context/StoreContext';
 import { calculateCartTotalWeight, getAvailableDeliveryOptions } from '../utils/delivery';
 import { DeliveryMethodType } from '../types';
+import { AdBanner } from './AdBanner';
 
 interface CartPageProps {
   navigate: (route: string) => void;
@@ -58,6 +59,9 @@ export const CartPage: React.FC<CartPageProps> = ({ navigate }) => {
   return (
     <div className="bg-neutral-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top Responsive Ad Banner */}
+        <AdBanner slotKey="cartTop" className="mb-6" />
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight flex items-center gap-3">

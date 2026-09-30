@@ -68,6 +68,7 @@ import { AdminBankAccountsView } from './AdminBankAccountsView';
 import { SingleImageUploader } from './ImageUploader';
 import { deleteImageFromStorage } from '../../lib/storageService';
 import { getOrderConfirmationMailto, getCustomerWelcomeMailto } from '../../utils/emailComposer';
+import { AdBanner } from '../AdBanner';
 
 interface AdminPortalProps {
   navigate: (route: string) => void;
@@ -1143,6 +1144,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
 
       {/* Main Admin Content Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Top Responsive Ad Banner (Admin Panel) */}
+        <AdBanner slotKey="adminTop" className="mb-6" />
+
         {/* ========================================================= */}
         {/* 1. DASHBOARD TAB */}
         {/* ========================================================= */}
