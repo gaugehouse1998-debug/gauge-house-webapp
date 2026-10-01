@@ -8,8 +8,21 @@ import { slugify } from '../src/utils/seo.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BASE_URL = 'https://gaugehouse1998-debug.github.io/gauge-house-webapp';
-const BASE_PATH = '/gauge-house-webapp';
+const isRootDeploy =
+  process.env.VITE_BASE_PATH === '/' ||
+  process.env.VITE_BASE_PATH === '' ||
+  process.env.DEPLOY_TARGET === 'root' ||
+  Boolean(process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY.split('/')[1]?.endsWith('.github.io'));
+
+const BASE_PATH = isRootDeploy
+  ? ''
+  : (process.env.VITE_BASE_PATH && process.env.VITE_BASE_PATH !== '/'
+      ? process.env.VITE_BASE_PATH.replace(/\/$/, '')
+      : '/gauge-house-webapp');
+
+const BASE_URL = isRootDeploy
+  ? 'https://gaugehouse1998-debug.github.io'
+  : (process.env.VITE_BASE_URL || `https://gaugehouse1998-debug.github.io${BASE_PATH}`);
 
 const VERIFIED_ORG = {
   name: 'Gauge House',
@@ -991,12 +1004,22 @@ ${sitemapUrls
   // 10. ROBOTS.TXT
   const robotsTxt = `User-agent: *
 Allow: /
+Allow: /catalog
+Allow: /category/
+Allow: /product/
+Allow: /guides/
+Allow: /assets/
 Allow: /gauge-house-webapp/
 Allow: /gauge-house-webapp/catalog
 Allow: /gauge-house-webapp/category/
 Allow: /gauge-house-webapp/product/
 Allow: /gauge-house-webapp/guides/
 Allow: /gauge-house-webapp/assets/
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /order-confirmation
 Disallow: /gauge-house-webapp/admin/
 Disallow: /gauge-house-webapp/checkout
 Disallow: /gauge-house-webapp/cart
@@ -1008,6 +1031,7 @@ User-agent: Googlebot
 Allow: /
 
 User-agent: Googlebot-Image
+Allow: /assets/
 Allow: /gauge-house-webapp/assets/
 Allow: /
 
@@ -1018,7 +1042,8 @@ Allow: /
 User-agent: Google-Display-Ads-Bot
 Allow: /
 
-Sitemap: ${BASE_URL}/sitemap.xml
+Sitemap: https://gaugehouse1998-debug.github.io/sitemap.xml
+Sitemap: https://gaugehouse1998-debug.github.io/gauge-house-webapp/sitemap.xml
 `;
 
   fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsTxt, 'utf-8');

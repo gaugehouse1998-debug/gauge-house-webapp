@@ -1,11 +1,21 @@
 User-agent: *
 Allow: /
+Allow: /catalog
+Allow: /category/
+Allow: /product/
+Allow: /guides/
+Allow: /assets/
 Allow: /gauge-house-webapp/
 Allow: /gauge-house-webapp/catalog
 Allow: /gauge-house-webapp/category/
 Allow: /gauge-house-webapp/product/
 Allow: /gauge-house-webapp/guides/
 Allow: /gauge-house-webapp/assets/
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /order-confirmation
 Disallow: /gauge-house-webapp/admin/
 Disallow: /gauge-house-webapp/checkout
 Disallow: /gauge-house-webapp/cart
@@ -17,6 +27,7 @@ User-agent: Googlebot
 Allow: /
 
 User-agent: Googlebot-Image
+Allow: /assets/
 Allow: /gauge-house-webapp/assets/
 Allow: /
 
@@ -27,4 +38,5 @@ Allow: /
 User-agent: Google-Display-Ads-Bot
 Allow: /
 
+Sitemap: https://gaugehouse1998-debug.github.io/sitemap.xml
 Sitemap: https://gaugehouse1998-debug.github.io/gauge-house-webapp/sitemap.xml

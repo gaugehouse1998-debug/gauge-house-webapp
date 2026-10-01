@@ -66,14 +66,19 @@ function aistudioMediaPlugin(): Plugin {
 
 export default defineConfig(({ command }) => {
   // Determine base path: GitHub Pages actions env, repo name, or default to repository path '/gauge-house-webapp/' for production build
-  let base = command === 'build' ? '/gauge-house-webapp/' : '/';
-  if (process.env.VITE_BASE_PATH && process.env.VITE_BASE_PATH !== '/') {
+  let base = '/';
+  if (process.env.VITE_BASE_PATH) {
     base = process.env.VITE_BASE_PATH.endsWith('/') ? process.env.VITE_BASE_PATH : `${process.env.VITE_BASE_PATH}/`;
   } else if (process.env.GITHUB_REPOSITORY) {
     const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
-    if (repo && !repo.endsWith('.github.io')) {
+    if (repo && repo.endsWith('.github.io')) {
+      base = '/';
+    } else if (repo) {
       base = `/${repo}/`;
     }
+  } else if (command === 'build') {
+    // Default fallback if not specified via VITE_BASE_PATH or GITHUB_REPOSITORY
+    base = process.env.DEPLOY_TARGET === 'root' ? '/' : '/gauge-house-webapp/';
   }
 
   return {
