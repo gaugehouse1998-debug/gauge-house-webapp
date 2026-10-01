@@ -2,8 +2,8 @@ import { Product, Category } from '../types';
 
 export const SITE_NAME = 'Gauge House';
 export const SITE_TAGLINE = 'Precision You Can Trust — Industrial Pressure Gauges & Instrumentation';
-export const BASE_URL = 'https://gaugehouse1998-debug.github.io/gauge-house-webapp';
-export const BASE_PATH = '/gauge-house-webapp';
+export const BASE_URL = 'https://gaugehouse1998-debug.github.io';
+export const BASE_PATH = '';
 
 export const VERIFIED_BUSINESS = {
   name: 'Gauge House',
@@ -11,7 +11,7 @@ export const VERIFIED_BUSINESS = {
   email: 'gaugehouse1998@gmail.com',
   phone: '03354499186',
   intlPhone: '+923354499186',
-  website: 'https://gaugehouse1998-debug.github.io/gauge-house-webapp/',
+  website: 'https://gaugehouse1998-debug.github.io/',
   instagram: 'https://www.instagram.com/gaugehouse/',
   googleBusiness: 'https://share.google/vF3mPKSlCp18rInyh',
   country: 'Pakistan',

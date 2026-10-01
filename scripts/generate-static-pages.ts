@@ -8,21 +8,20 @@ import { slugify } from '../src/utils/seo.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const isRootDeploy =
-  process.env.VITE_BASE_PATH === '/' ||
-  process.env.VITE_BASE_PATH === '' ||
-  process.env.DEPLOY_TARGET === 'root' ||
-  Boolean(process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY.split('/')[1]?.endsWith('.github.io'));
+const isSubpathDeploy = Boolean(
+  process.env.VITE_BASE_PATH &&
+  process.env.VITE_BASE_PATH !== '/' &&
+  process.env.VITE_BASE_PATH !== '' &&
+  process.env.VITE_BASE_PATH !== './'
+);
 
-const BASE_PATH = isRootDeploy
-  ? ''
-  : (process.env.VITE_BASE_PATH && process.env.VITE_BASE_PATH !== '/'
-      ? process.env.VITE_BASE_PATH.replace(/\/$/, '')
-      : '/gauge-house-webapp');
+const BASE_PATH = isSubpathDeploy
+  ? process.env.VITE_BASE_PATH!.replace(/\/$/, '')
+  : '';
 
-const BASE_URL = isRootDeploy
-  ? 'https://gaugehouse1998-debug.github.io'
-  : (process.env.VITE_BASE_URL || `https://gaugehouse1998-debug.github.io${BASE_PATH}`);
+const BASE_URL = isSubpathDeploy
+  ? (process.env.VITE_BASE_URL || `https://gaugehouse1998-debug.github.io${BASE_PATH}`)
+  : 'https://gaugehouse1998-debug.github.io';
 
 const VERIFIED_ORG = {
   name: 'Gauge House',
@@ -211,9 +210,8 @@ function generateHtmlPage({
 
 ${schemaScripts}
     <!-- Google AdSense Verification -->
-    <meta name="google-adsense-account" content="ca-pub-4720077339963302" />
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4720077339963302"
-         crossorigin="anonymous"></script>
+    <meta name="google-adsense-account" content="ca-pub-4720077339963302">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4720077339963302" crossorigin="anonymous"></script>
     ${assetTags.stylesHtml}
   </head>
   <body class="bg-neutral-950 text-neutral-100 antialiased">

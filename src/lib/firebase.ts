@@ -1,25 +1,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { initializeFirestore, getFirestore, doc, getDoc, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with robust long-polling transport for iframe, proxy, and sandbox network environments
-let firestoreDb: Firestore;
-try {
-  firestoreDb = initializeFirestore(
-    app,
-    {
-      experimentalForceLongPolling: true,
-    },
-    firebaseConfig.firestoreDatabaseId
-  );
-} catch {
-  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-}
-export const db = firestoreDb;
+// Initialize Firestore using canonical skill configuration
+// Avoid experimentalForceLongPolling which causes connection exhaustion (code=unavailable)
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -119,9 +108,12 @@ export function cleanFirestoreData<T>(data: T): T {
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
     if (typeof window === 'undefined') return true;
-    await getDoc(doc(db, 'test', 'connection_probe'));
+    await getDocFromServer(doc(db, 'test', 'connection'));
     return true;
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('Firestore offline status noted: client will operate in offline cache mode.');
+    }
     return false;
   }
 }
