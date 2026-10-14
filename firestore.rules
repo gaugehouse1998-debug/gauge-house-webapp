@@ -10,7 +10,7 @@ service cloud.firestore {
     // Strict admin verification: Email must match authorized admin, or user has admin role in admins/admin_users
     function isAuthorizedAdmin() {
       return isSignedIn() && (
-        request.auth.token.email.matches('(?i)gaugehouse1998@gmail\\.com') ||
+        ('email' in request.auth.token && request.auth.token.email.matches('(?i)gaugehouse1998@gmail\\.com')) ||
         (
           exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin'
@@ -83,13 +83,15 @@ service cloud.firestore {
     // Customers database & leads: private to user and authorized admin
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAuthorizedAdmin());
-      allow create: if isSignedIn() && request.auth.uid == userId &&
-        (!('role' in request.resource.data) || request.resource.data.role == 'customer') &&
-        request.auth.token.email != 'gaugehouse1998@gmail.com';
-      allow update: if (isSignedIn() && request.auth.uid == userId &&
-        (!('role' in request.resource.data) || request.resource.data.role == 'customer')) ||
-        isAuthorizedAdmin();
-      allow delete: if (isSignedIn() && request.auth.uid == userId) || isAuthorizedAdmin();
+      allow create: if isSignedIn() && (
+        (request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == 'customer')) ||
+        isAuthorizedAdmin()
+      );
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == 'customer')) ||
+        isAuthorizedAdmin()
+      );
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isAuthorizedAdmin());
     }
 
     // Settings
@@ -108,7 +110,7 @@ service cloud.firestore {
     match /admin_users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAuthorizedAdmin());
       allow write: if isSignedIn() && (
-        (request.auth.uid == uid && request.auth.token.email == 'gaugehouse1998@gmail.com') ||
+        (request.auth.uid == uid && ('email' in request.auth.token && request.auth.token.email.matches('(?i)gaugehouse1998@gmail\\.com'))) ||
         isAuthorizedAdmin()
       );
     }
@@ -117,7 +119,7 @@ service cloud.firestore {
     match /admins/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAuthorizedAdmin());
       allow write: if isSignedIn() && (
-        (request.auth.uid == uid && request.auth.token.email == 'gaugehouse1998@gmail.com') ||
+        (request.auth.uid == uid && ('email' in request.auth.token && request.auth.token.email.matches('(?i)gaugehouse1998@gmail\\.com'))) ||
         isAuthorizedAdmin()
       );
     }

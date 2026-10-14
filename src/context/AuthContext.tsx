@@ -53,23 +53,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const verifyAdmin = async (currentUser: User | null): Promise<boolean> => {
-    if (!currentUser || !currentUser.email) {
+    const email = (currentUser?.email || auth.currentUser?.email || currentUser?.providerData?.[0]?.email || '').toLowerCase().trim();
+    if (!email) {
       setIsAdmin(false);
       return false;
     }
     // Strict email check: only the authorized admin account can ever be verified as admin
-    if (currentUser.email.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+    if (email !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
       setIsAdmin(false);
       return false;
     }
-    await ensureAdminRecord(currentUser);
-    const admin = await checkUserIsAdmin(currentUser);
-    setIsAdmin(admin);
-    return admin;
+    if (currentUser) {
+      await ensureAdminRecord(currentUser);
+      const admin = await checkUserIsAdmin(currentUser);
+      setIsAdmin(admin);
+      return admin;
+    }
+    setIsAdmin(false);
+    return false;
   };
 
   const syncProfile = async (currentUser: User | null, extra?: { name?: string; phone?: string; address?: string; city?: string }) => {
     if (!currentUser) {
+      setCustomerProfile(null);
+      return;
+    }
+    const email = (currentUser.email || auth.currentUser?.email || currentUser.providerData?.[0]?.email || '').toLowerCase().trim();
+    if (email === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
       setCustomerProfile(null);
       return;
     }
@@ -253,8 +263,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshAdminStatus = async () => {
     if (user) {
-      await verifyAdmin(user);
-      await syncProfile(user);
+      const isAdm = await verifyAdmin(user);
+      if (!isAdm) {
+        await syncProfile(user);
+      } else {
+        setCustomerProfile(null);
+      }
     }
   };
 

@@ -760,8 +760,9 @@ export async function syncCustomerOnAuth(
   user: User,
   extra?: { name?: string; phone?: string; address?: string; city?: string }
 ): Promise<CustomerUser | null> {
+  const userEmail = (user.email || auth.currentUser?.email || user.providerData?.[0]?.email || '').toLowerCase().trim();
   // Admin account must NEVER be stored or synced in users collection
-  if (user.email && user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase()) {
+  if (userEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
     return null;
   }
 
