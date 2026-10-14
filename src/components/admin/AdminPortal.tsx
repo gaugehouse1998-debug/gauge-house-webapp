@@ -75,7 +75,16 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
-  const { user, isAdmin, loading: authLoading, signInWithEmail, signOut, refreshAdminStatus } = useAuth();
+  const {
+    user,
+    isAdmin,
+    loading: authLoading,
+    signInWithEmail,
+    adminSignInWithGoogle,
+    sendAdminPasswordResetEmail,
+    signOut,
+    refreshAdminStatus,
+  } = useAuth();
   const { products, categories, banners, settings, formatPrice, paymentAccounts } = useStore();
 
   const [activeTab, setActiveTab] = useState<
@@ -94,6 +103,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [googleSigningIn, setGoogleSigningIn] = useState(false);
 
   const handleAdminSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +115,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
       return;
     }
     setAuthError(null);
+    setResetMessage(null);
     setSigningIn(true);
     try {
       await signInWithEmail(adminEmail.trim(), adminPassword);
@@ -114,9 +128,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
         code === 'auth/user-not-found' ||
         code === 'auth/invalid-email'
       ) {
-        setAuthError('Invalid administrator email or password. Please verify your credentials.');
+        setAuthError('Invalid administrator email or password. Please verify your credentials or use the Forgot Password link below.');
       } else if (code === 'auth/too-many-requests') {
-        setAuthError('Too many failed attempts. Please wait a moment before trying again.');
+        setAuthError('Too many failed attempts. Please wait a moment before trying again, or use the password reset option.');
       } else if (msg.includes('Access Denied')) {
         setAuthError(msg);
       } else {
@@ -124,6 +138,54 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
       }
     } finally {
       setSigningIn(false);
+    }
+  };
+
+  const handleSendResetEmail = async () => {
+    const targetEmail = adminEmail.trim() || 'gaugehouse1998@gmail.com';
+    setAuthError(null);
+    setResetMessage(null);
+    setResetLoading(true);
+    try {
+      await sendAdminPasswordResetEmail(targetEmail);
+      setResetSent(true);
+      setResetMessage(
+        `A secure password reset link has been dispatched to ${targetEmail}. Please check your inbox and spam folder, follow the instructions to set your new password, and then return here to log in.`
+      );
+    } catch (err: any) {
+      const code = err?.code || '';
+      if (code === 'auth/user-not-found') {
+        setAuthError(`No registered user found for ${targetEmail}. Please verify the administrator account.`);
+      } else if (code === 'auth/too-many-requests') {
+        setAuthError('Too many password reset requests. Please wait a few minutes before trying again.');
+      } else {
+        setAuthError(err?.message || 'Failed to send password reset email.');
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleGoogleAdminSignIn = async () => {
+    setAuthError(null);
+    setResetMessage(null);
+    setGoogleSigningIn(true);
+    try {
+      await adminSignInWithGoogle();
+    } catch (err: any) {
+      const code = err?.code || '';
+      const msg = err?.message || '';
+      if (code === 'auth/popup-closed-by-user') {
+        // User closed the popup, do not display an error
+      } else if (code === 'auth/cancelled-popup-request') {
+        // Ignored
+      } else if (msg.includes('Access Denied')) {
+        setAuthError(msg);
+      } else {
+        setAuthError(msg || 'Google Authentication failed. Please ensure you are logging in with gaugehouse1998@gmail.com.');
+      }
+    } finally {
+      setGoogleSigningIn(false);
     }
   };
 
@@ -375,6 +437,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
             </p>
           </div>
 
+          {resetMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-800 text-xs text-emerald-200 flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>{resetMessage}</span>
+            </div>
+          )}
+
           {authError && (
             <div className="p-3.5 rounded-xl bg-red-950/70 border border-red-800 text-xs text-red-200 flex items-start gap-2.5">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
@@ -402,9 +471,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={handleSendResetEmail}
+                  disabled={resetLoading}
+                  className="text-[11px] text-orange-400 hover:text-orange-300 font-semibold transition-colors cursor-pointer"
+                >
+                  {resetLoading ? 'Sending Reset Link...' : 'Forgot Password?'}
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -436,6 +515,43 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ navigate }) => {
               <span>{signingIn ? 'Verifying Credentials...' : 'Sign In'}</span>
             </button>
           </form>
+
+          <div className="relative flex py-1 items-center">
+            <div className="grow border-t border-neutral-800"></div>
+            <span className="shrink mx-3 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Or</span>
+            <div className="grow border-t border-neutral-800"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleAdminSignIn}
+            disabled={googleSigningIn}
+            className="w-full py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 disabled:opacity-60 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 border border-neutral-700 transition-all cursor-pointer"
+          >
+            {googleSigningIn ? (
+              <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+            ) : (
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+            )}
+            <span>{googleSigningIn ? 'Connecting to Google...' : 'Sign In with Google (gaugehouse1998@gmail.com)'}</span>
+          </button>
 
           <div className="pt-2 border-t border-neutral-800 text-center">
             <button

@@ -5,9 +5,11 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
+  signInWithPopup,
   signOut as fbSignOut
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, googleProvider } from '../lib/firebase';
 import {
   checkUserIsAdmin,
   ensureAdminRecord,
@@ -26,6 +28,8 @@ interface AuthContextType {
   isAdmin: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   adminSignInWithEmail: (email: string, password: string) => Promise<void>;
+  adminSignInWithGoogle: () => Promise<void>;
+  sendAdminPasswordResetEmail: (email?: string) => Promise<void>;
   registerWithEmail: (data: {
     name: string;
     email: string;
@@ -166,6 +170,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdmin(true);
   };
 
+  const adminSignInWithGoogle = async (): Promise<void> => {
+    const result = await signInWithPopup(auth, googleProvider);
+    const authUser = result.user;
+
+    // Strict email check: block any account other than gaugehouse1998@gmail.com
+    if (!authUser.email || authUser.email.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+      await fbSignOut(auth);
+      setUser(null);
+      setIsAdmin(false);
+      throw new Error(`Access Denied: ${authUser.email || 'This account'} is not authorized for Admin Console.`);
+    }
+
+    // Strict Firestore role check: ensure admin record exists
+    await ensureAdminRecord(authUser);
+    const isAuthorized = await checkUserIsAdmin(authUser);
+    if (!isAuthorized) {
+      await fbSignOut(auth);
+      setUser(null);
+      setIsAdmin(false);
+      throw new Error('Access Denied: Administrative record not found or deactivated in admin_users.');
+    }
+
+    setUser(authUser);
+    setIsAdmin(true);
+  };
+
+  const sendAdminPasswordResetEmail = async (email?: string): Promise<void> => {
+    const targetEmail = (email && email.trim()) ? email.trim().toLowerCase() : AUTHORIZED_ADMIN_EMAIL.toLowerCase();
+    // Verify target matches authorized admin email to avoid exposing or resetting arbitrary addresses
+    if (targetEmail !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+      throw new Error('Password reset through this portal is restricted to the store administrator email.');
+    }
+    await sendPasswordResetEmail(auth, targetEmail);
+  };
+
   const registerWithEmail = async (data: {
     name: string;
     email: string;
@@ -249,6 +288,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin,
         signInWithEmail,
         adminSignInWithEmail,
+        adminSignInWithGoogle,
+        sendAdminPasswordResetEmail,
         registerWithEmail,
         signOut,
         refreshAdminStatus,
