@@ -212,6 +212,9 @@ ${schemaScripts}
     <!-- Google AdSense Verification -->
     <meta name="google-adsense-account" content="ca-pub-4720077339963302">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4720077339963302" crossorigin="anonymous"></script>
+
+    <!-- Monetag Verification -->
+    <meta name="monetag" content="26ce85877cb93c0c85ccba2b016eddb1">
     ${assetTags.stylesHtml}
   </head>
   <body class="bg-neutral-950 text-neutral-100 antialiased">
