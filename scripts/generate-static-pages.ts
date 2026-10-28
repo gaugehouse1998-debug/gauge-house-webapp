@@ -1061,7 +1061,6 @@ Sitemap: https://gaugehouse1998-debug.github.io/gauge-house-webapp/sitemap.xml
   const appAdsTxt = `google.com, pub-4720077339963302, DIRECT, f08c47fec0942fa0\n`;
   fs.writeFileSync(path.join(distDir, 'app-ads.txt'), appAdsTxt, 'utf-8');
   fs.writeFileSync(path.join(publicDir, 'app-ads.txt'), appAdsTxt, 'utf-8');
-  fs.writeFileSync(path.join(rootDir, 'app-ads.txt'), appAdsTxt, 'utf-8');
 
   // 11. GITHUB PAGES BRANCH DEPLOYMENT COMPATIBILITY & .nojekyll
   // Ensure .nojekyll exists in dist/ and root to prevent Jekyll from skipping asset files
